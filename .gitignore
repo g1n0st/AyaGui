@@ -1,3 +1,7 @@
+/.vs
+/ayagui
+/ayagui_windows
+/debug
 # Prerequisites
 *.d
 
