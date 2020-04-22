@@ -2,14 +2,12 @@
 #define AYA_GUI_H
 
 #include <math.h>
-
 #include <Windows.h>
 #include <minwindef.h>
 
+#include <gl/glew.h>
 #include <gl/GL.h>
 #include <gl/GLU.h>
-
-#include "glext.h"
 
 namespace Aya {
 	// OpenGL Extension Loader
@@ -109,7 +107,7 @@ namespace Aya {
 		// Precomputed coordinates for circle
 		static const int CIRCLE_VERTEX_COUNT = 12;
 		GLfloat m_circle_coords[CIRCLE_VERTEX_COUNT];
-
+		
 		static const GLchar *vert_shader_source;
 		static const GLchar *blur_frag_shader_source;
 

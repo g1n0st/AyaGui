@@ -1,4 +1,4 @@
-#include "ayagui.h"
+#include <GUI/AyaGUI.h>
 
 #include <exception>
 #include <functional>
@@ -155,8 +155,7 @@ namespace Aya {
 
 	const GLchar* GUIRenderer::vert_shader_source = R"(
 		    varying vec2 texCoord;
-			void main()
-			{
+			void main() {
 				gl_Position = gl_Vertex;
 				texCoord = gl_MultiTexCoord0.xy;
 			})";
@@ -165,11 +164,9 @@ namespace Aya {
 			uniform float weights[13];
 			uniform vec2 offsets[13];
 			varying vec2 texCoord;
-			void main()
-			{
+			void main() {
 				vec4 sample = 0.0f;
-				for(int i = 0; i < 13; i++)
-				{
+				for(int i = 0; i < 13; i++) {
 					sample += weights[i] * texture2DLod(texSampler, texCoord + offsets[i], 2);
 				}
 				gl_FragColor = vec4(sample.rgb, 1.0);
@@ -211,7 +208,7 @@ namespace Aya {
 		SelectObject(m_HDC, m_font);
 		DeleteObject(font);
 
-		auto loadShader = [](GLint type, const GLchar *source) {
+		auto LoadShader = [](GLint type, const GLchar *source) {
 			GLint handle = glCreateShader(type);
 			GLint length = (GLint)strlen(source);
 			glShaderSource(handle, 1, &source, &length);
@@ -225,13 +222,13 @@ namespace Aya {
 			return handle;
 		};
 
-		GLint handle_vertex_shader = loadShader(GL_VERTEX_SHADER, vert_shader_source);
-		GLint handle_blur_frag_shader = loadShader(GL_FRAGMENT_SHADER, blur_frag_shader_source);
+		GLint handle_vertex_shader = LoadShader(GL_VERTEX_SHADER, vert_shader_source);
+		GLint handle_blur_frag_shader = LoadShader(GL_FRAGMENT_SHADER, blur_frag_shader_source);
 		glAttachShader(m_handle_program, handle_vertex_shader);
 		glAttachShader(m_handle_program, handle_blur_frag_shader);
 
 		
-		auto excuteAndCheck = [](std::function<void(GLint)> glFunc, GLint handle) {
+		auto ExcuteAndCheck = [](std::function<void(GLint)> glFunc, GLint handle) {
 			GLint status;
 			GLchar* status_buffer;
 			GLint length;
@@ -247,8 +244,8 @@ namespace Aya {
 			delete[] status_buffer;
 		};
 		
-		excuteAndCheck(glLinkProgram, m_handle_program);
-		excuteAndCheck(glValidateProgram, m_handle_program);
+		ExcuteAndCheck(glLinkProgram, m_handle_program);
+		ExcuteAndCheck(glValidateProgram, m_handle_program);
 
 		// Calculate circle coordinates
 		const GLfloat phi_itvl = 0.57119866428905331608411697877809f;
