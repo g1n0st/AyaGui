@@ -1,6 +1,7 @@
 #ifndef AYA_GUI_H
 #define AYA_GUI_H
 
+#include <assert.h>
 #include <math.h>
 #include <Windows.h>
 #include <minwindef.h>
@@ -83,15 +84,22 @@ namespace Aya {
 
 	void InitializeOpenGLExtensions();
 
+	struct Color4f {
+		GLfloat r, g, b, a;
+
+		Color4f() = default;
+		Color4f(GLfloat r0, GLfloat g0, GLfloat b0, GLfloat a0) noexcept :
+			r(r0), g(g0), b(b0), a(a0) {
+		}
+	};
+
 	class GUIRenderer {
 	private:
 		static GUIRenderer *mp_instance;
 
-		GLint m_tex_list_base;
+		GLint m_text_list_base;
 		GLint m_width, m_height;
 
-		// Font style render related
-		HFONT m_font;
 		HDC m_HDC;
 
 		GLuint m_handle_program;
@@ -100,13 +108,13 @@ namespace Aya {
 		GLuint m_handle_color_RBO;
 
 		// Gaussian blur weights and offsets
-		static const int BLUR_SAMPLE = 13;
+		static const size_t BLUR_SAMPLE = 13;
 		GLfloat m_gaussian_weights[BLUR_SAMPLE];
 		GLfloat m_gaussian_offsets[BLUR_SAMPLE * 2];
 
 		// Precomputed coordinates for circle
-		static const int CIRCLE_VERTEX_COUNT = 12;
-		GLfloat m_circle_coords[CIRCLE_VERTEX_COUNT];
+		static const size_t CIRCLE_VERTEX_COUNT = 12;
+		GLfloat m_circle_coords[CIRCLE_VERTEX_COUNT * 2];
 		
 		static const GLchar *vert_shader_source;
 		static const GLchar *blur_frag_shader_source;
@@ -137,6 +145,22 @@ namespace Aya {
 			return m_HDC;
 		}
 
+		void resize(int width, int height);
+
+		// Draw Call
+		void blurBackgroundTexture(int x0, int y0, int x1, int y1);
+		void drawBackgroundTexture(int x0, int y0, int x1, int y1);
+
+		void drawLine(int x0, int y0, int x1, int y1, float depth) const;
+		void drawRect(int x0, int y0, int x1, int y1, float depth, const bool filled = false, 
+			const Color4f &color = Color4f(1.0f, 1.0f, 1.0f, 0.5f), const Color4f &blend_color = Color4f(0.f, 0.f, 0.f, 0.f)) const;
+		void drawRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled = false,
+			const Color4f &color = Color4f(1.0f, 1.0f, 1.0f, 0.5f), const Color4f &blend_color = Color4f(0.f, 0.f, 0.f, 0.f)) const;
+		void drawCircle(int x0, int y0, float depth, int radius, bool filled, const Color4f &color) const;
+		void drawString(int x0, int y0, float depth, const char *text, int length = -1) const;
+
+	private:
+		void CalcGaussianBlurWeightsAndOffsets();
 	};
 }
 
