@@ -1,10 +1,10 @@
-#include <GUI/AyaGUI.h>
+#include <Gui/AyaGui.h>
+
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <ctime>
 
 using namespace Aya;
-
-GUIRenderer *mpGUIRender;
 
 void InitializeWindowsInfo() {
 	HWND hwnd = GetConsoleWindow();
@@ -39,14 +39,128 @@ void InitializeWindowsInfo() {
 }
 
 void OnResize(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
-	mpGUIRender->resize(width, height);
+	//glViewport(0, 0, width, height);
+	//mpGUIRender->resize(width, height);
+	AyaGui::Resize(width, height);
 }
 
-void OnEvent(GLFWwindow *window, int key, int scancode, int action, int mods) {
+KeyboardEvent keyboardEvent;
+void OnKeyboardEvent(GLFWwindow *window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
+
+	if (action == GLFW_PRESS) {
+		switch (key) {
+		case GLFW_KEY_ESCAPE:
+			keyboardEvent.funckey = FunctionKey::Esc;
+			break;
+		case GLFW_KEY_ENTER:
+			keyboardEvent.funckey = FunctionKey::Enter;
+			break;
+		case GLFW_KEY_LEFT:
+			keyboardEvent.funckey = FunctionKey::LeftArrow;
+			break;
+		case GLFW_KEY_RIGHT:
+			keyboardEvent.funckey = FunctionKey::RightArrow;
+			break;
+		case GLFW_KEY_DOWN:
+			keyboardEvent.funckey = FunctionKey::DownArrow;
+			break;
+		case GLFW_KEY_UP:
+			keyboardEvent.funckey = FunctionKey::UpArrow;
+			break;
+		case GLFW_KEY_INSERT:
+			keyboardEvent.funckey = FunctionKey::Insert;
+			break;
+		case GLFW_KEY_BACKSPACE:
+			keyboardEvent.funckey = FunctionKey::BackSpace;
+			break;
+		case GLFW_KEY_DELETE:
+			keyboardEvent.funckey = FunctionKey::Delete;
+			break;
+		case GLFW_KEY_TAB:
+			keyboardEvent.funckey = FunctionKey::Tab;
+			break;
+		case GLFW_KEY_HOME:
+			keyboardEvent.funckey = FunctionKey::Home;
+			break;
+		case GLFW_KEY_END:
+			keyboardEvent.funckey = FunctionKey::End;
+			break;
+		default:
+			keyboardEvent.funckey = FunctionKey::None;
+		}
+		keyboardEvent.key = key;
+		keyboardEvent.keymode = KeyMode::None;
+		if (mods | GLFW_MOD_CONTROL) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Ctrl);
+		if (mods | GLFW_MOD_SHIFT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Shift);
+		if (mods | GLFW_MOD_ALT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Alt);
+	}
+	else if (action == GLFW_RELEASE) {
+		keyboardEvent.key = 0;
+		keyboardEvent.funckey = FunctionKey::None;
+		keyboardEvent.keymode = KeyMode::None;
+	}
+	AyaGui::HandleKeyboardEvent(keyboardEvent);
+}
+MouseEvent mouseEvent;
+int last_left_click;
+int last_right_click;
+int double_click_interval = 500;
+void OnMouseEvent(GLFWwindow *window, int key, int action, int mods) {
+	//mouse_event.action = MouseAction::
+	if (key == GLFW_MOUSE_BUTTON_LEFT) {
+		last_right_click = 0;
+
+		if (action == GLFW_PRESS) {
+			mouseEvent.l_down = true;
+			if (std::clock() - last_left_click < double_click_interval) {
+				last_left_click = 0;
+				mouseEvent.action = MouseAction::LButtonDbClick;
+			}
+			else {
+				last_left_click = std::clock();
+				mouseEvent.action = MouseAction::LButtonDown;
+			}
+		}
+		else if (action == GLFW_RELEASE) {
+			mouseEvent.l_down = false;
+			mouseEvent.action = MouseAction::LButtonUp;
+		}
+	}
+	if (key == GLFW_MOUSE_BUTTON_RIGHT) {
+		last_left_click = 0;
+
+		if (action == GLFW_PRESS) {
+			mouseEvent.r_down = true;
+			if (std::clock() - last_right_click < double_click_interval) {
+				last_right_click = 0;
+				mouseEvent.action = MouseAction::RButtonDbClick;
+			}
+			else {
+				last_right_click = std::clock();
+				mouseEvent.action = MouseAction::RButtonDown;
+			}
+		}
+		else if (action == GLFW_RELEASE) {
+			mouseEvent.r_down = false;
+			mouseEvent.action = MouseAction::RButtonUp;
+		}
+	}
+
+	AyaGui::HandleMouseEvent(mouseEvent);
+}
+void OnCursorEvent(GLFWwindow *window, double x, double y) {
+	int x0 = int(x), y0 = int(y);
+	if (x0 != mouseEvent.x || y0 != mouseEvent.y) {
+		last_left_click = 0;
+		last_right_click = 0;
+		mouseEvent.x = x0;
+		mouseEvent.y = y0;
+	}
+	mouseEvent.action = MouseAction::Move;
+	AyaGui::HandleMouseEvent(mouseEvent);
 }
 
 int main() {
@@ -63,45 +177,42 @@ int main() {
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSetKeyCallback(window, OnEvent);
+	glfwSetKeyCallback(window, OnKeyboardEvent);
+	glfwSetMouseButtonCallback(window, OnMouseEvent);
+	glfwSetCursorPosCallback(window, OnCursorEvent);
+	
 
 	glViewport(0, 0, 1280, 800);
 	glfwSetFramebufferSizeCallback(window, OnResize);
 
-	mpGUIRender = GUIRenderer::instace();
-	mpGUIRender->resize(1280, 800);
+	AyaGui::Init();
+	AyaGui::Resize(1280, 800);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Main Loop here ...
-		glClear(GL_DEPTH_BUFFER_BIT);
+		AyaGui::BeginFrame();
 
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
-		glLoadIdentity();
-		glOrtho(0, 1280, 0, 800, 1, -1);
+		AyaGui::BeginSidebarDialog(LayoutStrategy::DockLeft);
+		AyaGui::EndDialog();
 
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
-		glLoadIdentity();
+		AyaGui::BeginSidebarDialog(LayoutStrategy::DockRight);
+		AyaGui::EndDialog();
+		int x = mouseEvent.x, y = mouseEvent.y;
+		AyaGui::BeginDialog(x, y, 500, 500);
+		AyaGui::EndDialog();
 
-		mpGUIRender->drawLine(100, 100, 300, 300, 0.3f);
-		mpGUIRender->drawRoundedRect(30, 30, 400, 400, 0.2f, 50, false);
-		mpGUIRender->drawCircle(500, 500, 0.1f, 150, true, Color4f(0.5f, 0.6f, 0.7f, 0.5f));
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		mpGUIRender->drawString(50, 50, 0.1f, "glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);");
-		mpGUIRender->drawString(300, 500, 0.1f, "glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);");
-		mpGUIRender->blurBackgroundTexture(0, 0, 300, 300);
-		mpGUIRender->drawBackgroundTexture(0, 0, 300, 300);
+		AyaGui::EndFrame();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
+	AyaGui::Release();
+
 	glfwTerminate();
-	GUIRenderer::deleteInstance();
+	GuiRenderer::deleteInstance();
 
 	return 0;
 }
