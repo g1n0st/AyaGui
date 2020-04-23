@@ -1,4 +1,4 @@
-#include <GUI/AyaGUI.h>
+#include <Gui/AyaGui.h>
 
 #include <exception>
 #include <functional>
@@ -147,19 +147,19 @@ namespace Aya {
 		glBlendEquationSeperate = (PFNGLBLENDEQUATIONSEPARATEPROC)wglGetProcAddress("glBlendEquationSeperate");
 	}
 
-	GUIRenderer* GUIRenderer::mp_instance = nullptr;
+	GuiRenderer* GuiRenderer::mp_instance = nullptr;
 
-	const GLfloat GUIRenderer::DEPTH_FAR  = 0.8f;
-	const GLfloat GUIRenderer::DEPTH_MID  = 0.6f;
-	const GLfloat GUIRenderer::DEPTH_NEAR = 0.4f;
+	const GLfloat GuiRenderer::DEPTH_FAR  = 0.8f;
+	const GLfloat GuiRenderer::DEPTH_MID  = 0.6f;
+	const GLfloat GuiRenderer::DEPTH_NEAR = 0.4f;
 
-	const GLchar* GUIRenderer::vert_shader_source = R"(
+	const GLchar* GuiRenderer::vert_shader_source = R"(
 		    varying vec2 texCoord;
 			void main() {
 				gl_Position = gl_Vertex;
 				texCoord = gl_MultiTexCoord0.xy;
 			})";
-	const GLchar* GUIRenderer::blur_frag_shader_source = R"(
+	const GLchar* GuiRenderer::blur_frag_shader_source = R"(
 			uniform sampler2D texSampler;
 			uniform float weights[13];
 			uniform vec2 offsets[13];
@@ -172,7 +172,7 @@ namespace Aya {
 				gl_FragColor = vec4(sample.rgb, 1.0);
 			})";
 
-	GUIRenderer::GUIRenderer() {
+	GuiRenderer::GuiRenderer() {
 		m_handle_program = glCreateProgram();
 
 		// Background Tex
@@ -261,14 +261,14 @@ namespace Aya {
 		m_circle_coords[2 * CIRCLE_VERTEX_COUNT - 1] = m_circle_coords[1];
 	}
 
-	GUIRenderer::~GUIRenderer() {
+	GuiRenderer::~GuiRenderer() {
 		glDeleteProgram(m_handle_program);
 		glDeleteTextures(1, &m_handle_bg_tex);
 		glDeleteFramebuffers(1, &m_handle_FBO);
 		glDeleteRenderbuffers(1, &m_handle_color_RBO);
 	}
 
-	void GUIRenderer::resize(int width, int height) {
+	void GuiRenderer::resize(int width, int height) {
 		m_width = width;
 		m_height = height;
 
@@ -284,7 +284,7 @@ namespace Aya {
 		CalcGaussianBlurWeightsAndOffsets();
 	}
 
-	void GUIRenderer::blurBackgroundTexture(int x0, int y0, int x1, int y1) {
+	void GuiRenderer::blurBackgroundTexture(int x0, int y0, int x1, int y1) {
 		glBindTexture(GL_TEXTURE_2D, m_handle_bg_tex);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_width, m_height, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -334,13 +334,13 @@ namespace Aya {
 		glViewport(0, 0, m_width, m_height);
 	}
 
-	void GUIRenderer::drawBackgroundTexture(int x0, int y0, int x1, int y1) {
+	void GuiRenderer::drawBackgroundTexture(int x0, int y0, int x1, int y1) {
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_handle_FBO);
 		glBlitFramebuffer((x0 + 0x7) >> 2, (y0 - 0x7) >> 2, (x1 - 0x7) >> 2, (y1 + 0x7) >> 2, x0, y0, x1, y1, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
 
-	void GUIRenderer::drawLine(int x0, int y0, int x1, int y1, float depth) const {
+	void GuiRenderer::drawLine(int x0, int y0, int x1, int y1, float depth) const {
 		glBegin(GL_LINES);
 
 		glVertex3f((GLfloat)x0, (GLfloat)y0, depth);
@@ -349,7 +349,7 @@ namespace Aya {
 		glEnd();
 	}
 
-	void GUIRenderer::drawRect(int x0, int y0, int x1, int y1, float depth, const bool filled,
+	void GuiRenderer::drawRect(int x0, int y0, int x1, int y1, float depth, const bool filled,
 		const Color4f &color, const Color4f &blend_color) const {
 		auto draw = [](int x0, int y0, int x1, int y1, float depth) {
 			glBegin(GL_QUADS);
@@ -375,7 +375,7 @@ namespace Aya {
 		}
 	}
 
-	void GUIRenderer::drawRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled,
+	void GuiRenderer::drawRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled,
 		const Color4f &color, const Color4f &blend_color) const {
 		glBlendColor(blend_color.r, blend_color.g, blend_color.b, blend_color.a);
 		glColor4fv((GLfloat*)&color);
@@ -428,7 +428,7 @@ namespace Aya {
 		glEnd();
 	}
 
-	void GUIRenderer::drawCircle(int x0, int y0, float depth, int radius, bool filled, const Color4f &color) const {
+	void GuiRenderer::drawCircle(int x0, int y0, float depth, int radius, bool filled, const Color4f &color) const {
 		glBlendColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glColor4fv((GLfloat*)&color);
 
@@ -453,7 +453,7 @@ namespace Aya {
 		glEnd();
 	}
 
-	void GUIRenderer::drawString(int x0, int y0, float depth, const char *text, int length) const {
+	void GuiRenderer::drawString(int x0, int y0, float depth, const char *text, int length) const {
 		glListBase(m_text_list_base);
 
 		glRasterPos3f((GLfloat)x0, (GLfloat)y0 + 10.f, depth);
@@ -466,7 +466,7 @@ namespace Aya {
 		}
 	}
 
-	void GUIRenderer::CalcGaussianBlurWeightsAndOffsets() {
+	void GuiRenderer::CalcGaussianBlurWeightsAndOffsets() {
 		auto GaussianDistribution = [](GLfloat x, GLfloat y, GLfloat rho) {
 			const GLfloat pi = 3.141592653589793238462643383279f;
 			float g = 1.f / std::sqrtf(2.f * pi * rho * rho);
@@ -497,5 +497,251 @@ namespace Aya {
 
 		for (size_t i = 0; i < index; i++)
 			m_gaussian_weights[i] /= total_weight;
+	}
+
+	// Immediate Mode GUI Implementation
+	GuiStates *AyaGui::states;
+
+	void AyaGui::Init() {
+		states = new GuiStates;
+		
+		states->active_id = -1;
+		states->active_dialog_id = -1;
+		
+		states->key_state.key = 0;
+		states->key_state.funckey = FunctionKey::None;
+		states->key_state.keymode = KeyMode::None;
+
+		states->editing_id = -1;
+		states->scroller_init_y = 0;
+		states->console_scroller = 1.0f;
+	}
+
+	void AyaGui::Release() {
+		delete states;
+		states = nullptr;
+
+		GuiRenderer::deleteInstance();
+	}
+
+	void AyaGui::Resize(int width, int height) {
+		states->screen_width = width;
+		states->screen_height = height;
+
+		GuiRenderer::instance()->resize(width, height);
+	}
+
+	void AyaGui::BeginFrame() {
+		states->current_id = 0;
+		states->current_dialog_id = 0;
+		states->hovered_id = 0;
+	}
+
+	void AyaGui::EndFrame() {
+		states->global_mouse_state.action = MouseAction::None;
+		
+		states->key_state.key = 0;
+		states->key_state.funckey = FunctionKey::None;
+		states->key_state.keymode = KeyMode::None;
+	}
+
+	void AyaGui::BeginDialog(int &x, int &y, const int width, const int height) {
+		auto dialog_id(states->current_dialog_id++);
+
+		states->current_layout_strategy = LayoutStrategy::Floating;
+		states->current_growth_strategy = GrowthStrategy::Vertical;
+
+		states->dialog_width = width;
+		states->dialog_height = height;
+		states->dialog_pos_x = x;
+		states->dialog_pos_y = y;
+		states->current_pos_x = BORDER_PADDING;
+		states->current_pos_y = BORDER_PADDING;
+		states->widget_end_x = states->dialog_width - BORDER_PADDING;
+
+		states->mouse_state = states->global_mouse_state;
+		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
+		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+
+		if (states->mouse_state.x >= 0 &&
+			states->mouse_state.x < states->dialog_width &&
+			states->mouse_state.y > 0 &&
+			states->mouse_state.y <= states->dialog_height) {
+			if (states->mouse_state.action == MouseAction::LButtonDown)
+				states->active_dialog_id = dialog_id;
+		}
+		if (states->mouse_state.action == MouseAction::LButtonUp) {
+			if (states->active_dialog_id == dialog_id)
+				states->active_dialog_id = -1;
+		}
+
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0, states->screen_width, 0, states->screen_height, 1, -1);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		// Render the blurred background texture
+		glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_DEPTH_TEST);
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+
+		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
+		glScalef(1.0f, -1.0f, 1.0f);
+
+		glLineWidth(1.0f);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
+		glBlendEquation(GL_FUNC_ADD);
+
+		GuiRenderer::instance()->drawRoundedRect(0,
+			0,
+			states->dialog_width,
+			states->dialog_height,
+			GuiRenderer::DEPTH_FAR,
+			15.0f,
+			true,
+			Color4f(0.1f, 0.1f, 0.1f, 0.5f),
+			Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	void AyaGui::BeginSidebarDialog(LayoutStrategy layout, const int width, const int height) {
+		auto dialog_id(states->current_dialog_id++);
+
+		states->current_layout_strategy = layout;
+		states->current_growth_strategy = GrowthStrategy::Vertical;
+
+		switch (layout) {
+		case LayoutStrategy::DockRight:
+			states->dialog_width = SIDEBAR_WIDTH;
+			states->dialog_height = states->screen_height;
+			states->dialog_pos_x = states->screen_width - states->dialog_width;
+			states->dialog_pos_y = 0;
+			states->current_pos_x = BORDER_PADDING;
+			states->current_pos_y = BORDER_PADDING;
+			states->widget_end_x = states->dialog_width - BORDER_PADDING;
+			break;
+
+		case LayoutStrategy::DockLeft:
+			states->dialog_width = SIDEBAR_WIDTH;
+			states->dialog_height = states->screen_height;
+			states->dialog_pos_x = 0;
+			states->dialog_pos_y = 0;
+			states->current_pos_x = BORDER_PADDING;
+			states->current_pos_y = BORDER_PADDING;
+			states->widget_end_x = states->dialog_width - BORDER_PADDING;
+			break;
+
+		default:
+			std::exception("Floating Strategy cannot use in BeginSiderbarDialog(), please use BeginDialog() instead");
+		}
+
+		states->mouse_state = states->global_mouse_state;
+		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
+		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+
+		if (states->mouse_state.x >= 0 &&
+			states->mouse_state.x < states->dialog_width &&
+			states->mouse_state.y > 0 &&
+			states->mouse_state.y <= states->dialog_height) {
+			if (states->mouse_state.action == MouseAction::LButtonDown)
+				states->active_dialog_id = dialog_id;
+		}
+		if (states->mouse_state.action == MouseAction::LButtonUp) {
+			if (states->active_dialog_id == dialog_id)
+				states->active_dialog_id = -1;
+		}
+
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(0, states->screen_width, 0, states->screen_height, 1, -1);
+
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+
+		// Render the blurred background texture
+		glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_DEPTH_TEST);
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+
+		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
+		glScalef(1.0f, -1.0f, 1.0f);
+
+		glLineWidth(1.0f);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
+		glBlendEquation(GL_FUNC_ADD);
+
+		// Draw blurred background
+		
+		glBlendColor(1.0f, 1.0f, 1.0f, 0.5f);
+		glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+		glBegin(GL_QUADS);
+
+		glVertex3f(0.0f, 0.0f, GuiRenderer::DEPTH_FAR);
+		glVertex3f((GLfloat)states->dialog_width, 0.0f, GuiRenderer::DEPTH_FAR);
+		glVertex3f((GLfloat)states->dialog_width, (GLfloat)states->dialog_height, GuiRenderer::DEPTH_FAR);
+		glVertex3f(0.0f, (GLfloat)states->dialog_height, GuiRenderer::DEPTH_FAR);
+
+		glEnd();
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	void AyaGui::EndDialog() {
+		glPopAttrib();
+		glPopMatrix();
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+	}
+
+	bool AyaGui::HandleMouseEvent(const MouseEvent& mouse) {
+		states->global_mouse_state = mouse;
+
+		return states->active_dialog_id != -1;
+	}
+
+	bool AyaGui::HandleKeyboardEvent(const KeyboardEvent& key) {
+		states->key_state = key;
+
+		return states->active_dialog_id != -1;
 	}
 }

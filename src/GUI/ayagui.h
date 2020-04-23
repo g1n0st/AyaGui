@@ -1,8 +1,10 @@
 #ifndef AYA_GUI_H
 #define AYA_GUI_H
 
-#include <assert.h>
-#include <math.h>
+#include <cassert>
+#include <cmath>
+#include <cstring>
+#include <vector>
 #include <Windows.h>
 #include <minwindef.h>
 
@@ -93,9 +95,9 @@ namespace Aya {
 		}
 	};
 
-	class GUIRenderer {
+	class GuiRenderer {
 	private:
-		static GUIRenderer *mp_instance;
+		static GuiRenderer *mp_instance;
 
 		GLint m_text_list_base;
 		GLint m_width, m_height;
@@ -125,13 +127,13 @@ namespace Aya {
 		static const GLfloat DEPTH_NEAR;
 
 	private:
-		GUIRenderer();
-		~GUIRenderer();
+		GuiRenderer();
+		~GuiRenderer();
 
 	public:
-		static __forceinline GUIRenderer* instace() {
+		static __forceinline GuiRenderer* instance() {
 			if (!mp_instance)
-				mp_instance = new GUIRenderer;
+				mp_instance = new GuiRenderer;
 			return mp_instance;
 		}
 		static void deleteInstance() {
@@ -161,6 +163,139 @@ namespace Aya {
 
 	private:
 		void CalcGaussianBlurWeightsAndOffsets();
+	};
+
+	// Immediate Mode GUI
+	enum class LayoutStrategy {
+		DockLeft,
+		DockRight,
+		Floating
+	};
+
+	enum class GrowthStrategy {
+		Vertical,
+		Horizontal
+	};
+
+	struct ComboBoxItem {
+		int  value;
+		char *label;
+	};
+
+	enum class MouseAction {
+		None,
+		LButtonDown,
+		LButtonUp,
+		LButtonDbClick,
+		RButtonDown,
+		RButtonUp,
+		RButtonDbClick,
+		Move
+	};
+
+	struct MouseEvent {
+		int x, y;
+		bool l_down, r_down;
+		MouseAction action;
+	};
+
+	enum class FunctionKey {
+		None,
+		Esc,
+		Enter,
+		LeftArrow,
+		UpArrow,
+		RightArrow,
+		DownArrow,
+		Insert,
+		BackSpace,
+		Delete,
+		Tab,
+		Home,
+		End
+	};
+
+	enum KeyMode {
+		None = 0,
+		Ctrl = 1 << 0,
+		Shift = 1 << 1,
+		Alt = 1 << 2,
+		CtrlShift = Ctrl | Shift,
+		CtrlAlt = Ctrl | Alt,
+		ShiftAlt = Shift | Alt,
+		CtrlShiftAlt = Ctrl | Shift | Alt
+	};
+
+	struct KeyboardEvent {
+		KeyMode keymode;
+		char key;
+		FunctionKey funckey;
+	};
+
+	struct GuiStates {
+		int screen_width;
+		int screen_height;
+		
+		int dialog_pos_x;
+		int dialog_pos_y;
+		int dialog_width;
+		int dialog_height;
+
+		int current_pos_x;
+		int current_pos_y;
+		int widget_end_x;
+		LayoutStrategy current_layout_strategy;
+		GrowthStrategy current_growth_strategy;
+
+		int current_id;
+		int hovered_id;
+		int  active_id;
+		int current_dialog_id;
+		int active_dialog_id;
+		MouseEvent mouse_state;
+		MouseEvent global_mouse_state;
+		KeyboardEvent key_state;
+
+		// Text edit states
+		int editing_id;
+		int cursor_pos;
+		int cursor_idx;
+		int select_idx;
+		std::string string_buffer;
+		std::vector<int> string_width_prefix_sum;
+
+		// Scroller states
+		int scroller_init_y;
+		int scroller_origin_y;
+		int scroller_button_down_offset;
+		bool scroller_active;
+
+		// Console states
+		std::string console_text_buffer;
+		float console_scroller;
+	};
+
+	class AyaGui {
+	private:
+		static GuiStates *states;
+		static const int PADDING = 10;
+		static const int SCROLL_PADDING = 8;
+		static const int BORDER_PADDING = 25;
+		static const int SIDEBAR_WIDTH = 200;
+
+	public:
+		static void Init();
+		static void Release();
+		static void Resize(int width, int height);
+
+		static void BeginFrame();
+		static void EndFrame();
+		static void BeginDialog(int &x, int &y, const int width = 250, const int height = 500);
+		static void BeginSidebarDialog(LayoutStrategy layout, const int width = 250, const int height = 500);
+		static void EndDialog();
+
+		static bool HandleMouseEvent(const MouseEvent& mouseArgs);
+		static bool HandleKeyboardEvent(const KeyboardEvent& keyArgs);
 	};
 }
 
