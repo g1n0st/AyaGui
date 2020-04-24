@@ -317,7 +317,8 @@ namespace Aya {
 		static bool HandleMouseEvent(const MouseEvent& mouseArgs);
 		static bool HandleKeyboardEvent(const KeyboardEvent& keyArgs);
 
-		static void Text(const char* str, ...);
+		static void Text(const char *str, ...);
+		static void MultilineText(const char *str, ...);
 	};
 }
 

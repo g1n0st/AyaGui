@@ -853,7 +853,7 @@ namespace Aya {
 		glPopMatrix();
 	}
 
-	bool AyaGui::HandleMouseEvent(const MouseEvent& mouse) {
+	bool AyaGui::HandleMouseEvent(const MouseEvent &mouse) {
 		if (states->moving_id == -1)
 			states->prev_global_mouse_state = states->global_mouse_state;
 		states->global_mouse_state = mouse;
@@ -861,13 +861,13 @@ namespace Aya {
 		return states->active_dialog_id != -1;
 	}
 
-	bool AyaGui::HandleKeyboardEvent(const KeyboardEvent& key) {
+	bool AyaGui::HandleKeyboardEvent(const KeyboardEvent &key) {
 		states->key_state = key;
 
 		return states->active_dialog_id != -1;
 	}
 
-	void AyaGui::Text(const char* str, ...) {
+	void AyaGui::Text(const char *str, ...) {
 		states->current_id++;
 
 		va_list args;
@@ -895,5 +895,61 @@ namespace Aya {
 			
 			states->current_pos_x += line_length + default_margin_right;
 		}
+	}
+
+	void AyaGui::MultilineText(const char *str, ...) {
+		states->current_id++;
+
+		va_list args;
+		va_start(args, str);
+
+		char buff[4096];
+		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+
+		va_end(args);
+
+		std::vector<int> line_idx;
+		std::string reformatted_str;
+		line_idx.clear();
+		line_idx.push_back(0);
+
+		// Split Text into lines
+		int line_length = 0;
+		for (int i = 0; i < size; i++) {
+			if (buff[i] == '\n') {
+				reformatted_str += '\0';
+				line_length = 0;
+				line_idx.push_back(reformatted_str.length());
+			}
+			else {
+				reformatted_str += buff[i];
+
+				SIZE text_extent;
+				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &buff[i], 1, &text_extent);
+				line_length += text_extent.cx;
+
+				if (line_length >= states->widget_end_x - states->current_pos_x) {
+					reformatted_str += '\0';
+					line_length = 0;
+					line_idx.push_back(reformatted_str.length());
+				}
+			}
+		}
+
+		// Render Text
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		for (size_t i = 0; i < line_idx.size(); i++) {
+			GuiRenderer::instance()->drawString(states->current_pos_x,
+				states->current_pos_y + i * multiline_text_height,
+				GuiRenderer::DEPTH_MID,
+				reformatted_str.c_str() + line_idx[i]);
+		}
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+			states->current_pos_y += line_idx.size() * multiline_text_height + default_margin_buttom;
+			states->current_pos_x = padding_left;
+		}
+		else
+			states->current_pos_x += default_margin_right;
 	}
 }
