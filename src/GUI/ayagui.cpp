@@ -583,6 +583,13 @@ namespace Aya {
 		GuiRenderer::instance()->resize(width, height);
 	}
 
+	void AyaGui::Vertical() {
+		states->current_growth_strategy = GrowthStrategy::Vertical;
+	}
+	void AyaGui::Horizontal() {
+		states->current_growth_strategy = GrowthStrategy::Horizontal;
+	}
+
 	void AyaGui::BeginFrame() {
 		states->current_id = 0;
 		states->current_dialog_id = 0;
@@ -597,23 +604,25 @@ namespace Aya {
 		states->key_state.keymode = KeyMode::None;
 	}
 
-	void AyaGui::BeginDialog(LayoutStrategy layout, int &x, int &y, const char *title, const int width, const int height) {
+	void AyaGui::BeginDialog(LayoutStrategy layout, int &x, int &y, const char *title, 
+		const int width, const int height,
+		GrowthStrategy growth_strategy) {
 		auto dialog_id(states->current_dialog_id++);
 
 		assert(layout == LayoutStrategy::Fixed || layout == LayoutStrategy::Floating);
 		states->current_layout_strategy = layout;
-		states->current_growth_strategy = GrowthStrategy::Vertical;
+		states->current_growth_strategy = growth_strategy;
 
 		states->dialog_width = width;
 		states->dialog_height = height;
 		states->dialog_pos_x = x;
 		states->dialog_pos_y = y;
-		states->current_pos_x = sidebar_padding_left;
+		states->current_pos_x = padding_left;
 		if (layout == LayoutStrategy::Floating || title)
 			states->current_pos_y = titled_dialog_padding_top;
 		else
 			states->current_pos_y = untitled_dialog_padding_top;
-		states->widget_end_x = states->dialog_width - sidebar_padding_top;
+		states->widget_end_x = states->dialog_width - padding_left;
 
 		states->mouse_state = states->global_mouse_state;
 		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
@@ -737,12 +746,14 @@ namespace Aya {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	void AyaGui::BeginSidebarDialog(LayoutStrategy layout, const int width, const int height) {
+	void AyaGui::BeginSidebarDialog(LayoutStrategy layout,
+		const int width, const int height,
+		GrowthStrategy growth_strategy) {
 		auto dialog_id(states->current_dialog_id++);
 
 		assert(layout == LayoutStrategy::DockLeft || layout == LayoutStrategy::DockRight);
 		states->current_layout_strategy = layout;
-		states->current_growth_strategy = GrowthStrategy::Vertical;
+		states->current_growth_strategy = growth_strategy;
 
 		switch (layout) {
 		case LayoutStrategy::DockRight:
@@ -750,9 +761,9 @@ namespace Aya {
 			states->dialog_height = states->screen_height;
 			states->dialog_pos_x = states->screen_width - states->dialog_width;
 			states->dialog_pos_y = 0;
-			states->current_pos_x = sidebar_padding_left;
+			states->current_pos_x = padding_left;
 			states->current_pos_y = sidebar_padding_top;
-			states->widget_end_x = states->dialog_width - sidebar_padding_top;
+			states->widget_end_x = states->dialog_width - padding_left;
 			break;
 
 		case LayoutStrategy::DockLeft:
@@ -760,9 +771,9 @@ namespace Aya {
 			states->dialog_height = states->screen_height;
 			states->dialog_pos_x = 0;
 			states->dialog_pos_y = 0;
-			states->current_pos_x = sidebar_padding_left;
+			states->current_pos_x = padding_left;
 			states->current_pos_y = sidebar_padding_top;
-			states->widget_end_x = states->dialog_width - sidebar_padding_top;
+			states->widget_end_x = states->dialog_width - padding_left;
 			break;
 		}
 
@@ -870,9 +881,19 @@ namespace Aya {
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, buff);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical)
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
 			states->current_pos_y += text_height + default_margin_buttom;
-		else
-			states->current_pos_x += default_margin_right;
+			states->current_pos_x = padding_left;
+		}
+		else {
+			int line_length = 0;
+			SIZE text_extent;
+			for (int i = 0; i < size; i++) {
+				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &buff[i], 1, &text_extent);
+				line_length += text_extent.cx;
+			}
+			
+			states->current_pos_x += line_length + default_margin_right;
+		}
 	}
 }

@@ -285,7 +285,7 @@ namespace Aya {
 		static GuiStates *states;
 		static const int default_margin_buttom			= 10;
 		static const int default_margin_right			= 5;
-		static const int sidebar_padding_left			= 18;
+		static const int padding_left					= 18;
 		static const int sidebar_padding_top				= 24;
 		static const int titled_dialog_padding_top		= 32;
 		static const int untitled_dialog_padding_top		= 12;
@@ -293,17 +293,25 @@ namespace Aya {
 		static const int sidebar_width					= 200;
 		static const int dialog_title_height				= 24;
 		static const int text_height						= 10;
+		static const int multiline_text_height			= 16;
 
 	public:
 		static void Init();
 		static void Release();
 		static void Resize(int width, int height);
 
+		static void Vertical();
+		static void Horizontal();
+
 		static void BeginFrame();
 		static void EndFrame();
 		static void BeginDialog(LayoutStrategy layout, int &x, int &y, 
-			const char *title = NULL, const int width = 250, const int height = 500);
-		static void BeginSidebarDialog(LayoutStrategy layout, const int width = 250, const int height = 500);
+			const char *title = NULL,
+			const int width = 250, const int height = 500,
+			GrowthStrategy growth_strategy = GrowthStrategy::Vertical);
+		static void BeginSidebarDialog(LayoutStrategy layout, 
+			const int width = 250, const int height = 500,
+			GrowthStrategy growth_strategy = GrowthStrategy::Vertical);
 		static void EndDialog();
 
 		static bool HandleMouseEvent(const MouseEvent& mouseArgs);
