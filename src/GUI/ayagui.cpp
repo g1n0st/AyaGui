@@ -1,5 +1,7 @@
 #include <Gui/AyaGui.h>
 
+#include <cmath>
+#include <cassert>
 #include <exception>
 #include <functional>
 #include <iostream>
@@ -882,7 +884,7 @@ namespace Aya {
 		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, buff);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += text_height + default_margin_buttom;
+			states->current_pos_y += text_height + default_margin_bottom;
 			states->current_pos_x = padding_left;
 		}
 		else {
@@ -946,10 +948,73 @@ namespace Aya {
 		}
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += line_idx.size() * multiline_text_height + default_margin_buttom;
+			states->current_pos_y += line_idx.size() * multiline_text_height + default_margin_bottom;
 			states->current_pos_x = padding_left;
 		}
 		else
 			states->current_pos_x += default_margin_right;
+	}
+
+	bool AyaGui::Button(const char *str, const int width, const int height) {
+		bool triggered = false;
+		int id(states->current_id++);
+
+		int left = states->current_pos_x;
+		int right = states->current_pos_x + width;
+		right = right > states->widget_end_x ? states->widget_end_x : right;
+		int top = states->current_pos_y;
+		int bottom = states->current_pos_y + height;
+
+		bool in_rect = states->mouse_state.x >= left && states->mouse_state.y >= top &&
+			states->mouse_state.x < right && states->mouse_state.y < bottom;
+
+		if (in_rect) {
+			if (states->mouse_state.action == MouseAction::LButtonDown)
+				states->active_id = id;
+
+			states->hovered_id = id;
+		}
+
+		if (states->mouse_state.action == MouseAction::LButtonUp) {
+			if (states->active_id == id) {
+				states->active_id = -1;
+				if (in_rect)
+					triggered = true;
+			}
+		}
+
+		float btn_radius = 5.0f;
+		if (states->hovered_id == id && states->active_id == id) {
+			GuiRenderer::instance()->drawRoundedRect(left + 1, top + 1, right - 1, bottom - 1,
+				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.65f));
+			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
+		}
+		else if (states->hovered_id == id && states->active_id == -1 || states->active_id == id) {
+			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
+				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
+		}
+		else {
+			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
+				GuiRenderer::DEPTH_MID, btn_radius, false, Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		}
+
+		SIZE text_extent;
+		GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), str, strlen(str), &text_extent);
+		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+		GuiRenderer::instance()->drawString((right + left - text_extent.cx) / 2,
+			(top + bottom - text_extent.cy) / 2 + 4, 
+			GuiRenderer::DEPTH_MID, str);
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+			states->current_pos_y += height + default_margin_bottom;
+			states->current_pos_x = padding_left;
+		}
+		else {
+			states->current_pos_x += right - left + default_margin_right;
+		}
+
+		return triggered;
 	}
 }

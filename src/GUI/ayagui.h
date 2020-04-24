@@ -1,12 +1,9 @@
 #ifndef AYA_GUI_H
 #define AYA_GUI_H
 
-#include <cassert>
-#include <cmath>
 #include <cstring>
 #include <vector>
 #include <Windows.h>
-#include <minwindef.h>
 
 #include <gl/glew.h>
 #include <gl/GL.h>
@@ -272,7 +269,7 @@ namespace Aya {
 		// Scroller states
 		int scroller_init_y;
 		int scroller_origin_y;
-		int scroller_button_down_offset;
+		int scroller_botton_down_offset;
 		bool scroller_active;
 
 		// Console states
@@ -283,7 +280,7 @@ namespace Aya {
 	class AyaGui {
 	private:
 		static GuiStates *states;
-		static const int default_margin_buttom			= 10;
+		static const int default_margin_bottom			= 10;
 		static const int default_margin_right			= 5;
 		static const int padding_left					= 18;
 		static const int sidebar_padding_top				= 24;
@@ -319,6 +316,7 @@ namespace Aya {
 
 		static void Text(const char *str, ...);
 		static void MultilineText(const char *str, ...);
+		static bool Button(const char *str, const int width = 114514, const int height = 24);
 	};
 }
 
