@@ -282,6 +282,7 @@ namespace Aya {
 		static GuiStates *states;
 		static const int default_margin_bottom			= 10;
 		static const int default_margin_right			= 5;
+		static const int line_margin_bottom				= 8;
 		static const int padding_left					= 18;
 		static const int sidebar_padding_top				= 24;
 		static const int titled_dialog_padding_top		= 32;
@@ -317,6 +318,7 @@ namespace Aya {
 		static void Text(const char *str, ...);
 		static void MultilineText(const char *str, ...);
 		static bool Button(const char *str, const int width = 114514, const int height = 24);
+		static void Line();
 	};
 }
 

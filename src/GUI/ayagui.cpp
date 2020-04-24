@@ -1017,4 +1017,17 @@ namespace Aya {
 
 		return triggered;
 	}
+
+	void AyaGui::Line() {
+		glLineWidth(1.0f);
+		glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
+		if (states->current_growth_strategy == GrowthStrategy::Horizontal) {
+			states->current_growth_strategy = GrowthStrategy::Vertical;
+			states->current_pos_y += default_margin_bottom + line_margin_bottom;
+			states->current_pos_x = padding_left;
+		}
+
+		GuiRenderer::instance()->drawLine(5, states->current_pos_y, states->dialog_width - 5, states->current_pos_y, GuiRenderer::DEPTH_MID);
+		states->current_pos_y += line_margin_bottom;
+	}
 }
