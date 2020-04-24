@@ -608,9 +608,12 @@ namespace Aya {
 		states->dialog_height = height;
 		states->dialog_pos_x = x;
 		states->dialog_pos_y = y;
-		states->current_pos_x = BORDER_PADDING;
-		states->current_pos_y = BORDER_PADDING;
-		states->widget_end_x = states->dialog_width - BORDER_PADDING;
+		states->current_pos_x = sidebar_padding_left;
+		if (layout == LayoutStrategy::Floating || title)
+			states->current_pos_y = titled_dialog_padding_top;
+		else
+			states->current_pos_y = untitled_dialog_padding_top;
+		states->widget_end_x = states->dialog_width - sidebar_padding_top;
 
 		states->mouse_state = states->global_mouse_state;
 		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
@@ -632,7 +635,7 @@ namespace Aya {
 			if (states->mouse_state.action == MouseAction::LButtonDown) {
 				states->active_dialog_id = dialog_id;
 				if (layout == LayoutStrategy::Floating && 
-					PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, DIALOG_TITLE_HEIGHT)) {
+					PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, dialog_title_height)) {
 					states->moving_id = dialog_id;
 				}
 			}
@@ -648,7 +651,7 @@ namespace Aya {
 		if (layout == LayoutStrategy::Floating &&
 			states->moving_id == dialog_id) {
 			if (states->active_dialog_id == dialog_id && 
-				PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, DIALOG_TITLE_HEIGHT)) {
+				PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, dialog_title_height)) {
 				x += states->global_mouse_state.x - states->prev_global_mouse_state.x;
 				y += states->global_mouse_state.y - states->prev_global_mouse_state.y;
 				states->dialog_pos_x = x;
@@ -679,14 +682,30 @@ namespace Aya {
 
 		// Render the blurred background texture
 		glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_DEPTH_TEST);
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
+			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
 
 		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
 		glScalef(1.0f, -1.0f, 1.0f);
 
 		glLineWidth(1.0f);
 		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
+		glBlendEquation(GL_FUNC_ADD);
 
 		GuiRenderer::instance()->drawRoundedRect(0,
 			0,
@@ -695,19 +714,19 @@ namespace Aya {
 			GuiRenderer::DEPTH_FAR,
 			8.0f,
 			true,
-			Color4f(0.1f, 0.1f, 0.1f, 1.0f),
-			Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+			Color4f(0.1f, 0.1f, 0.1f, 1.f),
+			Color4f(0.0f, 0.0f, 0.0f, 0.2f));
 
 		if (layout == LayoutStrategy::Floating) {
 			GuiRenderer::instance()->drawHalfRoundedRect(0,
 				0,
 				states->dialog_width,
-				DIALOG_TITLE_HEIGHT,
+				dialog_title_height,
 				GuiRenderer::DEPTH_FAR,
 				8.0f,
 				true,
-				Color4f(0.05f, 0.05f, 0.05f, 1.f),
-				Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+				Color4f(0.1f, 0.1f, 0.1f, 1.0f),
+				Color4f(0.0f, 0.0f, 0.0f, 0.03f));
 		}
 
 		if (title) {
@@ -727,23 +746,23 @@ namespace Aya {
 
 		switch (layout) {
 		case LayoutStrategy::DockRight:
-			states->dialog_width = SIDEBAR_WIDTH;
+			states->dialog_width = sidebar_width;
 			states->dialog_height = states->screen_height;
 			states->dialog_pos_x = states->screen_width - states->dialog_width;
 			states->dialog_pos_y = 0;
-			states->current_pos_x = BORDER_PADDING;
-			states->current_pos_y = BORDER_PADDING;
-			states->widget_end_x = states->dialog_width - BORDER_PADDING;
+			states->current_pos_x = sidebar_padding_left;
+			states->current_pos_y = sidebar_padding_top;
+			states->widget_end_x = states->dialog_width - sidebar_padding_top;
 			break;
 
 		case LayoutStrategy::DockLeft:
-			states->dialog_width = SIDEBAR_WIDTH;
+			states->dialog_width = sidebar_width;
 			states->dialog_height = states->screen_height;
 			states->dialog_pos_x = 0;
 			states->dialog_pos_y = 0;
-			states->current_pos_x = BORDER_PADDING;
-			states->current_pos_y = BORDER_PADDING;
-			states->widget_end_x = states->dialog_width - BORDER_PADDING;
+			states->current_pos_x = sidebar_padding_left;
+			states->current_pos_y = sidebar_padding_top;
+			states->widget_end_x = states->dialog_width - sidebar_padding_top;
 			break;
 		}
 
@@ -836,4 +855,5 @@ namespace Aya {
 
 		return states->active_dialog_id != -1;
 	}
+
 }

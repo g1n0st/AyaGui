@@ -283,11 +283,16 @@ namespace Aya {
 	class AyaGui {
 	private:
 		static GuiStates *states;
-		static const int PADDING = 10;
-		static const int SCROLL_PADDING = 8;
-		static const int BORDER_PADDING = 25;
-		static const int SIDEBAR_WIDTH = 200;
-		static const int DIALOG_TITLE_HEIGHT = 24;
+		static const int default_margin_buttom			= 10;
+		static const int default_margin_right			= 5;
+		static const int sidebar_padding_left			= 18;
+		static const int sidebar_padding_top				= 24;
+		static const int titled_dialog_padding_top		= 32;
+		static const int untitled_dialog_padding_top		= 12;
+
+		static const int sidebar_width					= 200;
+		static const int dialog_title_height				= 24;
+		static const int text_height						= 10;
 
 	public:
 		static void Init();
