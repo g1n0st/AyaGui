@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <functional>
+#include <iostream>
 
 namespace Aya {
 	PFNGLCREATESHADERPROC							glCreateShader;
@@ -428,6 +429,55 @@ namespace Aya {
 		glEnd();
 	}
 
+	void GuiRenderer::drawHalfRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled,
+		const Color4f &color, const Color4f &blend_color) const {
+		glBlendColor(blend_color.r, blend_color.g, blend_color.b, blend_color.a);
+		glColor4fv((GLfloat*)&color);
+
+		if (filled) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glBegin(GL_TRIANGLE_FAN);
+
+			// Center vertex
+			glVertex3f((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, depth);
+		}
+		else {
+			radius += 1;
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glBegin(GL_LINE_STRIP);
+		}
+
+		const size_t quater_vertex_count = CIRCLE_VERTEX_COUNT / 4;
+
+		glVertex3f((GLfloat)x0 + radius, (GLfloat)y0, depth);
+		glVertex3f((GLfloat)x1 - radius, (GLfloat)y0, depth);
+		for (size_t i = 0; i < quater_vertex_count; i++) {
+			GLfloat x = x1 - radius + m_circle_coords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			glVertex3f(x, y, depth);
+		}
+		glVertex3f((GLfloat)x1, (GLfloat)y0 + radius, depth);
+		glVertex3f((GLfloat)x1, (GLfloat)y1 - radius, depth);
+
+		glVertex3f((GLfloat)x1, (GLfloat)y1, depth);
+
+		glVertex3f((GLfloat)x1 - radius, (GLfloat)y1, depth);
+		glVertex3f((GLfloat)x0 + radius, (GLfloat)y1, depth);
+
+		glVertex3f((GLfloat)x0, (GLfloat)y1, depth);
+
+		glVertex3f((GLfloat)x0, (GLfloat)y1 - radius, depth);
+		glVertex3f((GLfloat)x0, (GLfloat)y0 + radius, depth);
+		for (size_t i = 3 * quater_vertex_count; i < 4 * quater_vertex_count; i++) {
+			GLfloat x = x0 + radius + m_circle_coords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			glVertex3f(x, y, depth);
+		}
+
+		glEnd();
+	}
+
 	void GuiRenderer::drawCircle(int x0, int y0, float depth, int radius, bool filled, const Color4f &color) const {
 		glBlendColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glColor4fv((GLfloat*)&color);
@@ -452,6 +502,7 @@ namespace Aya {
 
 		glEnd();
 	}
+
 
 	void GuiRenderer::drawString(int x0, int y0, float depth, const char *text, int length) const {
 		glListBase(m_text_list_base);
@@ -506,6 +557,7 @@ namespace Aya {
 		states = new GuiStates;
 		
 		states->active_id = -1;
+		states->moving_id = -1;
 		states->active_dialog_id = -1;
 		
 		states->key_state.key = 0;
@@ -545,10 +597,11 @@ namespace Aya {
 		states->key_state.keymode = KeyMode::None;
 	}
 
-	void AyaGui::BeginDialog(int &x, int &y, const int width, const int height) {
+	void AyaGui::BeginDialog(LayoutStrategy layout, int &x, int &y, const char *title, const int width, const int height) {
 		auto dialog_id(states->current_dialog_id++);
 
-		states->current_layout_strategy = LayoutStrategy::Floating;
+		assert(layout == LayoutStrategy::Fixed || layout == LayoutStrategy::Floating);
+		states->current_layout_strategy = layout;
 		states->current_growth_strategy = GrowthStrategy::Vertical;
 
 		states->dialog_width = width;
@@ -563,16 +616,54 @@ namespace Aya {
 		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
 		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
 
-		if (states->mouse_state.x >= 0 &&
-			states->mouse_state.x < states->dialog_width &&
-			states->mouse_state.y > 0 &&
-			states->mouse_state.y <= states->dialog_height) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
+		auto PtInRect = [](int ptx, int pty, int x0, int y0, int x1, int y1) {
+			return (ptx >= x0 && ptx < x1 && pty >= y0 && pty < y1);
+		};
+
+		int mouse_x = states->mouse_state.x;
+		int mouse_y = states->mouse_state.y;
+		// When dialog is moving, logical frame is prev frame
+		if (states->moving_id == dialog_id && layout == LayoutStrategy::Floating) {
+			mouse_x -= states->global_mouse_state.x - states->prev_global_mouse_state.x;
+			mouse_y -= states->global_mouse_state.y - states->prev_global_mouse_state.y;
+		}
+
+		if (PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, states->dialog_height)) {
+			if (states->mouse_state.action == MouseAction::LButtonDown) {
 				states->active_dialog_id = dialog_id;
+				if (layout == LayoutStrategy::Floating && 
+					PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, DIALOG_TITLE_HEIGHT)) {
+					states->moving_id = dialog_id;
+				}
+			}
 		}
 		if (states->mouse_state.action == MouseAction::LButtonUp) {
 			if (states->active_dialog_id == dialog_id)
 				states->active_dialog_id = -1;
+			if (layout == LayoutStrategy::Floating &&
+				states->moving_id == dialog_id)
+				states->moving_id = -1;
+		}
+
+		if (layout == LayoutStrategy::Floating &&
+			states->moving_id == dialog_id) {
+			if (states->active_dialog_id == dialog_id && 
+				PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, DIALOG_TITLE_HEIGHT)) {
+				x += states->global_mouse_state.x - states->prev_global_mouse_state.x;
+				y += states->global_mouse_state.y - states->prev_global_mouse_state.y;
+				states->dialog_pos_x = x;
+				states->dialog_pos_y = y;
+				states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
+				states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+				
+				states->prev_global_mouse_state = states->global_mouse_state;
+			}
+			else
+				states->moving_id = -1;
+		}
+		if (layout == LayoutStrategy::Fixed &&
+			states->moving_id == dialog_id) {
+			states->moving_id = -1;
 		}
 
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -588,40 +679,41 @@ namespace Aya {
 
 		// Render the blurred background texture
 		glPushAttrib(GL_ALL_ATTRIB_BITS);
-		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_DEPTH_TEST);
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
 
 		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
 		glScalef(1.0f, -1.0f, 1.0f);
 
 		glLineWidth(1.0f);
 		glDepthFunc(GL_LEQUAL);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_ALPHA);
-		glBlendEquation(GL_FUNC_ADD);
 
 		GuiRenderer::instance()->drawRoundedRect(0,
 			0,
 			states->dialog_width,
 			states->dialog_height,
 			GuiRenderer::DEPTH_FAR,
-			15.0f,
+			8.0f,
 			true,
-			Color4f(0.1f, 0.1f, 0.1f, 0.5f),
-			Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+			Color4f(0.1f, 0.1f, 0.1f, 1.0f),
+			Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+
+		if (layout == LayoutStrategy::Floating) {
+			GuiRenderer::instance()->drawHalfRoundedRect(0,
+				0,
+				states->dialog_width,
+				DIALOG_TITLE_HEIGHT,
+				GuiRenderer::DEPTH_FAR,
+				8.0f,
+				true,
+				Color4f(0.05f, 0.05f, 0.05f, 1.f),
+				Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+		}
+
+		if (title) {
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			GuiRenderer::instance()->drawString(10, 6, GuiRenderer::DEPTH_FAR, title);
+		}
 
 		glEnable(GL_DEPTH_TEST);
 	}
@@ -629,6 +721,7 @@ namespace Aya {
 	void AyaGui::BeginSidebarDialog(LayoutStrategy layout, const int width, const int height) {
 		auto dialog_id(states->current_dialog_id++);
 
+		assert(layout == LayoutStrategy::DockLeft || layout == LayoutStrategy::DockRight);
 		states->current_layout_strategy = layout;
 		states->current_growth_strategy = GrowthStrategy::Vertical;
 
@@ -652,9 +745,6 @@ namespace Aya {
 			states->current_pos_y = BORDER_PADDING;
 			states->widget_end_x = states->dialog_width - BORDER_PADDING;
 			break;
-
-		default:
-			std::exception("Floating Strategy cannot use in BeginSiderbarDialog(), please use BeginDialog() instead");
 		}
 
 		states->mouse_state = states->global_mouse_state;
@@ -734,6 +824,8 @@ namespace Aya {
 	}
 
 	bool AyaGui::HandleMouseEvent(const MouseEvent& mouse) {
+		if (states->moving_id == -1)
+			states->prev_global_mouse_state = states->global_mouse_state;
 		states->global_mouse_state = mouse;
 
 		return states->active_dialog_id != -1;

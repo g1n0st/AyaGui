@@ -158,6 +158,8 @@ namespace Aya {
 			const Color4f &color = Color4f(1.0f, 1.0f, 1.0f, 0.5f), const Color4f &blend_color = Color4f(0.f, 0.f, 0.f, 0.f)) const;
 		void drawRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled = false,
 			const Color4f &color = Color4f(1.0f, 1.0f, 1.0f, 0.5f), const Color4f &blend_color = Color4f(0.f, 0.f, 0.f, 0.f)) const;
+		void drawHalfRoundedRect(int x0, int y0, int x1, int y1, float depth, float radius, const bool filled = false,
+			const Color4f &color = Color4f(1.0f, 1.0f, 1.0f, 0.5f), const Color4f &blend_color = Color4f(0.f, 0.f, 0.f, 0.f)) const;
 		void drawCircle(int x0, int y0, float depth, int radius, bool filled, const Color4f &color) const;
 		void drawString(int x0, int y0, float depth, const char *text, int length = -1) const;
 
@@ -169,7 +171,8 @@ namespace Aya {
 	enum class LayoutStrategy {
 		DockLeft,
 		DockRight,
-		Floating
+		Floating,
+		Fixed
 	};
 
 	enum class GrowthStrategy {
@@ -252,7 +255,9 @@ namespace Aya {
 		int  active_id;
 		int current_dialog_id;
 		int active_dialog_id;
+		int moving_id;
 		MouseEvent mouse_state;
+		MouseEvent prev_global_mouse_state;
 		MouseEvent global_mouse_state;
 		KeyboardEvent key_state;
 
@@ -282,6 +287,7 @@ namespace Aya {
 		static const int SCROLL_PADDING = 8;
 		static const int BORDER_PADDING = 25;
 		static const int SIDEBAR_WIDTH = 200;
+		static const int DIALOG_TITLE_HEIGHT = 24;
 
 	public:
 		static void Init();
@@ -290,7 +296,8 @@ namespace Aya {
 
 		static void BeginFrame();
 		static void EndFrame();
-		static void BeginDialog(int &x, int &y, const int width = 250, const int height = 500);
+		static void BeginDialog(LayoutStrategy layout, int &x, int &y, 
+			const char *title = NULL, const int width = 250, const int height = 500);
 		static void BeginSidebarDialog(LayoutStrategy layout, const int width = 250, const int height = 500);
 		static void EndDialog();
 
