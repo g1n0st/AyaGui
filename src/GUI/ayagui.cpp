@@ -856,4 +856,23 @@ namespace Aya {
 		return states->active_dialog_id != -1;
 	}
 
+	void AyaGui::Text(const char* str, ...) {
+		states->current_id++;
+
+		va_list args;
+		va_start(args, str);
+
+		char buff[1024];
+		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+
+		va_end(args);
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, buff);
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical)
+			states->current_pos_y += text_height + default_margin_buttom;
+		else
+			states->current_pos_x += default_margin_right;
+	}
 }
