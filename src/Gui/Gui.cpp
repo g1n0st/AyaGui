@@ -253,7 +253,7 @@ namespace Aya {
 		ExcuteAndCheck(glValidateProgram, m_handle_program);
 
 		// Calculate circle coordinates
-		const GLfloat phi_itvl = 0.57119866428905331608411697877809f;
+		const GLfloat phi_itvl = 6.2831853071796f / (CIRCLE_VERTEX_COUNT - 1);
 		GLfloat phi = 0.0f;
 		for (size_t i = 0; i < CIRCLE_VERTEX_COUNT - 1; ++i) {
 			m_circle_coords[i * 2 + 0] = std::sinf(phi);
@@ -719,7 +719,7 @@ namespace Aya {
 			states->dialog_width,
 			states->dialog_height,
 			GuiRenderer::DEPTH_FAR,
-			8.0f,
+			12.0f,
 			true,
 			Color4f(0.1f, 0.1f, 0.1f, 1.f),
 			Color4f(0.0f, 0.0f, 0.0f, 0.2f));
@@ -730,7 +730,7 @@ namespace Aya {
 				states->dialog_width,
 				dialog_title_height,
 				GuiRenderer::DEPTH_FAR,
-				8.0f,
+				12.0f,
 				true,
 				Color4f(0.1f, 0.1f, 0.1f, 1.0f),
 				Color4f(0.0f, 0.0f, 0.0f, 0.03f));

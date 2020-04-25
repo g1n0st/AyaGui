@@ -112,7 +112,7 @@ namespace Aya {
 		GLfloat m_gaussian_offsets[BLUR_SAMPLE * 2];
 
 		// Precomputed coordinates for circle
-		static const size_t CIRCLE_VERTEX_COUNT = 12;
+		static const size_t CIRCLE_VERTEX_COUNT = 24;
 		GLfloat m_circle_coords[CIRCLE_VERTEX_COUNT * 2];
 		
 		static const GLchar *vert_shader_source;
