@@ -1,4 +1,4 @@
-#include <Gui/AyaGui.h>
+#include <Gui/Gui.h>
 
 #include <cmath>
 #include <cassert>
