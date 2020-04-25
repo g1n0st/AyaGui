@@ -630,10 +630,6 @@ namespace Aya {
 		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
 		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
 
-		auto PtInRect = [](int ptx, int pty, int x0, int y0, int x1, int y1) {
-			return (ptx >= x0 && ptx < x1 && pty >= y0 && pty < y1);
-		};
-
 		int mouse_x = states->mouse_state.x;
 		int mouse_y = states->mouse_state.y;
 		// When dialog is moving, logical frame is prev frame
@@ -965,8 +961,7 @@ namespace Aya {
 		int top = states->current_pos_y;
 		int bottom = states->current_pos_y + height;
 
-		bool in_rect = states->mouse_state.x >= left && states->mouse_state.y >= top &&
-			states->mouse_state.x < right && states->mouse_state.y < bottom;
+		bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom);
 
 		if (in_rect) {
 			if (states->mouse_state.action == MouseAction::LButtonDown)
@@ -1029,5 +1024,111 @@ namespace Aya {
 
 		GuiRenderer::instance()->drawLine(5, states->current_pos_y, states->dialog_width - 5, states->current_pos_y, GuiRenderer::DEPTH_MID);
 		states->current_pos_y += line_margin_bottom;
+	}
+
+	void AyaGui::ComboBox(const char *lable, const std::vector<std::string> items, int &selected, int width, int height) {
+		Text(lable);
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical)
+			states->current_pos_y -= default_margin_bottom / 2;
+		else
+			states->current_pos_x -= default_margin_right / 2;
+
+		int id(states->current_id++);
+		if (width + states->current_pos_x > states->widget_end_x)
+			width = states->widget_end_x - states->current_pos_x;
+		int frame_left = states->current_pos_x;
+		int frame_top = states->current_pos_y;
+		int frame_right = states->current_pos_x + width;
+		int frmae_bottom = states->current_pos_y + height;
+
+		static bool list_down_current_frame;
+		list_down_current_frame = false;
+
+		if (PtInRect(states->mouse_state.x, states->mouse_state.y, frame_left, frame_top, frame_right, frmae_bottom)) {
+			if (states->mouse_state.action == MouseAction::LButtonDown) {
+				if (states->active_id != id)
+					states->active_id = id;
+				else if (states->active_id == id)
+					states->active_id = -1;
+
+				list_down_current_frame = true;
+			}
+
+			states->hovered_id = id;
+		}
+
+		Color4f button_color = states->active_id == id || states->hovered_id == id && states->active_id == -1 ? 
+			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : 
+			Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+
+		GuiRenderer::instance()->drawRect(frame_left, frame_top, frame_right, frmae_bottom, GuiRenderer::DEPTH_MID, false, button_color);
+		GuiRenderer::instance()->drawRect(frame_right - height, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
+		
+		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		if (selected >= 0 && selected < int(items.size()))
+			GuiRenderer::instance()->drawString(frame_left + 3, frame_top + 5, GuiRenderer::DEPTH_MID, items[selected].c_str());
+		else
+			GuiRenderer::instance()->drawString(frame_left + 5, frame_top + 5, GuiRenderer::DEPTH_MID, "...");
+
+		if (states->active_id == id) {
+			int drop_left = states->current_pos_x;
+			int drop_top = states->current_pos_y + height;
+			int drop_right = drop_left + width - height;
+			int drop_bottom = drop_top + 1 + int(items.size()) * combo_box_item_height;
+
+			if (states->mouse_state.action == MouseAction::LButtonDown) {
+				if (PtInRect(states->mouse_state.x, states->mouse_state.y, drop_left, drop_top, drop_right, drop_bottom))
+					selected = (states->mouse_state.y - drop_top) / combo_box_item_height;
+
+				if (!list_down_current_frame) {
+					states->active_id = -1;
+					states->hovered_id = id;
+					states->mouse_state.action = MouseAction::None;
+				}
+			}
+
+			GuiRenderer::instance()->drawRect(drop_left, drop_top + 1, drop_right, drop_bottom, GuiRenderer::DEPTH_NEAR, true, Color4f(0.25f, 0.25f, 0.25f, 1.0f));
+
+			int hovered_idx = (states->mouse_state.y - drop_top) / combo_box_item_height;
+			if (hovered_idx < 0)
+				hovered_idx = 0;
+			if (hovered_idx >= int(items.size()))
+				hovered_idx = int(items.size()) - 1;
+
+			for (int i = 0; i < int(items.size()); i++) {
+				if (i == hovered_idx) {
+					GuiRenderer::instance()->drawRect(
+						drop_left,
+						drop_top + 2 + hovered_idx * combo_box_item_height,
+						drop_right - 1,
+						drop_top + 1 + (hovered_idx + 1) * combo_box_item_height,
+						GuiRenderer::DEPTH_NEAR,
+						true,
+						Color4f(0.4f, 0.4f, 0.4f, 0.5f));
+
+					glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+					glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+				else {
+					glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+					glColor4f(0.9f, 0.9f, 0.9f, 1.0f);
+				}
+
+				GuiRenderer::instance()->drawString(drop_left + 3, drop_top + 6 + i * combo_box_item_height, GuiRenderer::DEPTH_NEAR, items[i].c_str());
+			}
+		}
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+			states->current_pos_y += height + default_margin_bottom;
+			states->current_pos_x = padding_left;
+		}
+		else
+			states->current_pos_x += width + default_margin_bottom;
+	}
+
+	bool AyaGui::PtInRect(int x0, int y0, int left, int top, int right, int bottom) {
+		return x0 >= left && y0 >= top && x0 < right && y0 < bottom;
 	}
 }

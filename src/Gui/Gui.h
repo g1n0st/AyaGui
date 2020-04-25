@@ -177,11 +177,6 @@ namespace Aya {
 		Horizontal
 	};
 
-	struct ComboBoxItem {
-		int  value;
-		char *label;
-	};
-
 	enum class MouseAction {
 		None,
 		LButtonDown,
@@ -292,6 +287,10 @@ namespace Aya {
 		static const int dialog_title_height				= 24;
 		static const int text_height						= 10;
 		static const int multiline_text_height			= 16;
+		static const int button_default_height			= 24;
+		static const int combo_box_default_width			= 140;
+		static const int combo_box_default_height		= 18;
+		static const int combo_box_item_height			= 20;
 
 	public:
 		static void Init();
@@ -317,8 +316,14 @@ namespace Aya {
 
 		static void Text(const char *str, ...);
 		static void MultilineText(const char *str, ...);
-		static bool Button(const char *str, const int width = 114514, const int height = 24);
+		static bool Button(const char *str, const int width = 114514, const int height = button_default_height);
 		static void Line();
+		static void ComboBox(const char *lable, 
+			const std::vector<std::string> items, int &selected, 
+			const int width = combo_box_default_width, const int height = combo_box_default_height);
+
+	private:
+		static bool PtInRect(int x0, int y0, int left, int top, int right, int bottom);
 	};
 }
 
