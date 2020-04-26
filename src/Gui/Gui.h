@@ -289,8 +289,9 @@ namespace Aya {
 		static const int multiline_text_height			= 16;
 		static const int button_default_height			= 24;
 		static const int combo_box_default_width			= 140;
-		static const int combo_box_default_height		= 18;
+		static const int combo_box_height				= 18;
 		static const int combo_box_item_height			= 20;
+		static const int check_box_size					= 12;
 
 	public:
 		static void Init();
@@ -316,11 +317,11 @@ namespace Aya {
 
 		static void Text(const char *str, ...);
 		static void MultilineText(const char *str, ...);
-		static bool Button(const char *str, const int width = 114514, const int height = button_default_height);
+		static bool Button(const char *label, const int width = 114514, const int height = button_default_height);
 		static void Line();
 		static void ComboBox(const char *lable, 
-			const std::vector<std::string> items, int &selected, 
-			const int width = combo_box_default_width, const int height = combo_box_default_height);
+			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
+		static bool CheckBox(const char *label, bool &checked);
 
 	private:
 		static bool PtInRect(int x0, int y0, int left, int top, int right, int bottom);

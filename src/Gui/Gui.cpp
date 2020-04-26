@@ -877,7 +877,7 @@ namespace Aya {
 		va_end(args);
 
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, buff);
+		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y + 3, GuiRenderer::DEPTH_MID, buff);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
 			states->current_pos_y += text_height + default_margin_bottom;
@@ -951,7 +951,7 @@ namespace Aya {
 			states->current_pos_x += default_margin_right;
 	}
 
-	bool AyaGui::Button(const char *str, const int width, const int height) {
+	bool AyaGui::Button(const char *label, const int width, const int height) {
 		bool triggered = false;
 		int id(states->current_id++);
 
@@ -996,11 +996,11 @@ namespace Aya {
 		}
 
 		SIZE text_extent;
-		GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), str, strlen(str), &text_extent);
+		GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), label, strlen(label), &text_extent);
 		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 		GuiRenderer::instance()->drawString((right + left - text_extent.cx) / 2,
 			(top + bottom - text_extent.cy) / 2 + 4, 
-			GuiRenderer::DEPTH_MID, str);
+			GuiRenderer::DEPTH_MID, label);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
 			states->current_pos_y += height + default_margin_bottom;
@@ -1026,7 +1026,7 @@ namespace Aya {
 		states->current_pos_y += line_margin_bottom;
 	}
 
-	void AyaGui::ComboBox(const char *lable, const std::vector<std::string> items, int &selected, int width, int height) {
+	void AyaGui::ComboBox(const char *lable, const std::vector<std::string> items, int &selected, int width) {
 		Text(lable);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical)
@@ -1040,7 +1040,7 @@ namespace Aya {
 		int frame_left = states->current_pos_x;
 		int frame_top = states->current_pos_y;
 		int frame_right = states->current_pos_x + width;
-		int frmae_bottom = states->current_pos_y + height;
+		int frmae_bottom = states->current_pos_y + combo_box_height;
 
 		static bool list_down_current_frame;
 		list_down_current_frame = false;
@@ -1063,7 +1063,7 @@ namespace Aya {
 			Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 
 		GuiRenderer::instance()->drawRect(frame_left, frame_top, frame_right, frmae_bottom, GuiRenderer::DEPTH_MID, false, button_color);
-		GuiRenderer::instance()->drawRect(frame_right - height, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
+		GuiRenderer::instance()->drawRect(frame_right - combo_box_height, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
 		
 		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1074,8 +1074,8 @@ namespace Aya {
 
 		if (states->active_id == id) {
 			int drop_left = states->current_pos_x;
-			int drop_top = states->current_pos_y + height;
-			int drop_right = drop_left + width - height;
+			int drop_top = states->current_pos_y + combo_box_height;
+			int drop_right = drop_left + width - combo_box_height;
 			int drop_bottom = drop_top + 1 + int(items.size()) * combo_box_item_height;
 
 			if (states->mouse_state.action == MouseAction::LButtonDown) {
@@ -1121,11 +1121,74 @@ namespace Aya {
 		}
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += height + default_margin_bottom;
+			states->current_pos_y += combo_box_height + default_margin_bottom;
 			states->current_pos_x = padding_left;
 		}
 		else
 			states->current_pos_x += width + default_margin_bottom;
+	}
+
+	bool AyaGui::CheckBox(const char *label, bool &checked) {
+		bool triggered = false;
+
+		int id(states->current_id++);
+
+		int box_left = states->current_pos_x;
+		int box_top = states->current_pos_y;
+		int box_right = box_left + check_box_size;
+		int box_bottom = box_top + check_box_size;
+
+		if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
+			if (states->mouse_state.action == MouseAction::LButtonDown)
+				states->active_id = id;
+			if (states->mouse_state.action == MouseAction::LButtonUp) {
+				if (states->active_id == id) {
+					states->active_id = -1;
+					checked = !checked;
+					triggered = true;
+				}
+			}
+
+			states->hovered_id = id;
+		}
+		else {
+			if (states->mouse_state.action == MouseAction::Move)
+				if (states->active_id == id)
+					states->active_id = -1;
+		}
+
+		Color4f color1 = states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+		GuiRenderer::instance()->drawRect(box_left,
+			box_top,
+			box_right,
+			box_bottom,
+			GuiRenderer::DEPTH_MID,
+			false,
+			color1);
+
+		Color4f color2 = checked ? color1 : states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(1.0f, 1.0f, 1.0f, 0.1f);
+		GuiRenderer::instance()->drawRect(box_left + 2,
+			box_top + 2,
+			box_right - 2,
+			box_bottom - 2,
+			GuiRenderer::DEPTH_MID,
+			true,
+			color2);
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		GuiRenderer::instance()->drawString(box_right + 7, box_top + 2, GuiRenderer::DEPTH_MID, label);
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+			states->current_pos_y += check_box_size + default_margin_bottom;
+			states->current_pos_x = padding_left;
+		}
+		else {
+			SIZE text_extent;
+			GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), label, strlen(label), &text_extent);
+			states->current_pos_x += 7 + check_box_size + text_extent.cx + default_margin_right;
+		}
+
+		return triggered;
 	}
 
 	bool AyaGui::PtInRect(int x0, int y0, int left, int top, int right, int bottom) {
