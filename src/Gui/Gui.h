@@ -292,6 +292,7 @@ namespace Aya {
 		static const int combo_box_height				= 18;
 		static const int combo_box_item_height			= 20;
 		static const int check_box_size					= 12;
+		static const int radio_button_circle_diameter	= 12;
 
 	public:
 		static void Init();
@@ -322,6 +323,7 @@ namespace Aya {
 		static void ComboBox(const char *lable, 
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
 		static bool CheckBox(const char *label, bool &checked);
+		static bool RadioButton(const char *label, int active, int &current);
 
 	private:
 		static bool PtInRect(int x0, int y0, int left, int top, int right, int bottom);
