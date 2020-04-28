@@ -1,7 +1,7 @@
 #ifndef AYA_GUI_H
 #define AYA_GUI_H
 
-#include <cstring>
+#include <string>
 #include <vector>
 #include <Windows.h>
 
@@ -305,7 +305,7 @@ namespace Aya {
 		static void BeginFrame();
 		static void EndFrame();
 		static void BeginDialog(LayoutStrategy layout, int &x, int &y, 
-			const char *title = NULL,
+			const char *title = nullptr,
 			const int width = 250, const int height = 500,
 			GrowthStrategy growth_strategy = GrowthStrategy::Vertical);
 		static void BeginSidebarDialog(LayoutStrategy layout, 
