@@ -293,6 +293,8 @@ namespace Aya {
 		static const int combo_box_item_height			= 20;
 		static const int check_box_size					= 12;
 		static const int radio_button_circle_diameter	= 12;
+		static const int scroller_width					= 8;
+		static const int scroller_margin					= 15;
 
 	public:
 		static void Init();
@@ -324,6 +326,10 @@ namespace Aya {
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
 		static bool CheckBox(const char *label, bool &checked);
 		static bool RadioButton(const char *label, int active, int &current);
+
+		static void Scroller(int limit, int actual, float &lin);
+		static void BeginScroller(int area_height, int &content_height, float &scroller);
+		static void EndScroller(int area_height, int &content_height, float &scroller);
 
 	private:
 		static bool PtInRect(int x0, int y0, int left, int top, int right, int bottom);

@@ -1252,6 +1252,125 @@ namespace Aya {
 		return triggered;
 	}
 
+	void AyaGui::Scroller(int limit, int actual, float &lin) {
+		int id(states->current_id++);
+
+		if (actual <= limit)
+			return;
+
+		states->scroller_active = true;
+		states->current_pos_x = padding_left;
+
+		const int bar_base = states->current_pos_y;
+		const int diff = 2;
+		const int inner_base = bar_base + diff;
+
+		float ratio = float(limit) / float(actual);
+		int scroller_len = int(limit * ratio);
+		int scroller_start = inner_base + int((bar_base - inner_base + limit - diff - scroller_len) * lin);
+
+		const int scroller_base = inner_base + scroller_len / 2;
+		const int scroller_end = inner_base + limit - scroller_len / 2;
+
+		int scroller_pos = scroller_base + int((scroller_end - scroller_base) * lin);
+
+		int bar_left = states->dialog_width - scroller_margin;
+		int bar_top = bar_base;
+		int bar_right = bar_left + scroller_width;
+		int bar_bottom = bar_top + limit;
+
+		if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+			bar_left, bar_top, bar_right, bar_bottom)) {
+			if (states->mouse_state.action == MouseAction::LButtonDown) {
+				states->active_id = id;
+
+				int offset = states->mouse_state.y - scroller_pos;
+				if (offset < 0) offset = -offset;
+
+				if (offset > scroller_len / 2)
+					states->scroller_botton_down_offset = 0;
+				else
+					states->scroller_botton_down_offset = states->mouse_state.y - scroller_pos;
+			}
+
+			if (states->mouse_state.action == MouseAction::LButtonUp) {
+				scroller_pos = states->mouse_state.y - states->scroller_botton_down_offset;
+				if (scroller_pos < scroller_base) scroller_pos = scroller_base;
+				if (scroller_pos > scroller_end) scroller_pos = scroller_end;
+				lin = float(scroller_pos - scroller_base) / (scroller_end - scroller_base);
+				lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
+
+				if (states->active_id == id)
+					states->active_id = -1;
+			}
+
+			states->hovered_id = id;
+		}
+
+		if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
+			if (states->active_id == id) {
+				scroller_pos = states->mouse_state.y - states->scroller_botton_down_offset;
+				if (scroller_pos < scroller_base) scroller_pos = scroller_base;
+				if (scroller_pos > scroller_end) scroller_pos = scroller_end;
+				lin = float(scroller_pos - scroller_base) / (scroller_end - scroller_base);
+				lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
+			}
+		}
+
+		if (states->mouse_state.action == MouseAction::LButtonUp)
+			if (states->active_id == id)
+				states->active_id = -1;
+
+		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
+			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+
+		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin,
+			bar_base,
+			states->dialog_width - scroller_width + 1,
+			bar_base + limit,
+			GuiRenderer::DEPTH_MID,
+			diff * 2,
+			false,
+			color);
+
+		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin + diff,
+			scroller_start,
+			states->dialog_width - scroller_width - 1,
+			scroller_start + scroller_len,
+			GuiRenderer::DEPTH_MID,
+			diff,
+			true,
+			color);
+	}
+
+	void AyaGui::BeginScroller(int area_height, int &content_height, float &scroller) {
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(states->dialog_pos_x,
+			states->screen_height - (states->dialog_pos_y + states->current_pos_y + area_height),
+			states->dialog_width,
+			area_height);
+
+		Scroller(area_height, content_height, scroller);
+
+		int offset = int(scroller * (content_height - area_height));
+		if (offset < 0) offset = 0;
+		states->scroller_init_y = states->current_pos_y - offset;
+		states->scroller_origin_y = states->current_pos_y;
+		states->current_pos_y = states->scroller_init_y;
+	}
+
+	void AyaGui::EndScroller(int area_height, int &content_height, float &scroller) {
+		content_height = states->current_pos_y - states->scroller_init_y;
+		states->current_pos_y = states->scroller_origin_y + area_height + default_margin_bottom;
+
+		if (states->scroller_active) {
+			states->current_pos_x = padding_left;
+			states->scroller_active = false;
+		}
+
+		glDisable(GL_SCISSOR_TEST);
+	}
+
 	bool AyaGui::PtInRect(int x0, int y0, int left, int top, int right, int bottom) {
 		return x0 >= left && y0 >= top && x0 < right && y0 < bottom;
 	}
