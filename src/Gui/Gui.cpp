@@ -1267,7 +1267,7 @@ namespace Aya {
 
 		float ratio = float(limit) / float(actual);
 		int scroller_len = int(limit * ratio);
-		int scroller_start = inner_base + int((bar_base - inner_base + limit - diff - scroller_len) * lin);
+		int scroller_start = int(inner_base + (bar_base - inner_base + limit - diff - scroller_len) * lin);
 
 		const int scroller_base = inner_base + scroller_len / 2;
 		const int scroller_end = inner_base + limit - scroller_len / 2;
@@ -1324,7 +1324,7 @@ namespace Aya {
 		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 
-		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin,
+		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin + 1,
 			bar_base,
 			states->dialog_width - scroller_width + 1,
 			bar_base + limit,
