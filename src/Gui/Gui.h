@@ -297,6 +297,8 @@ namespace Aya {
 		static const int radio_button_circle_diameter	= 12;
 		static const int scroller_width					= 8;
 		static const int scroller_margin					= 15;
+		static const int page_control_height				= 50;
+		static const int arrow_control_height			= 20;
 
 	public:
 		static void Init();

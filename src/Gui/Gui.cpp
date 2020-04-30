@@ -1279,6 +1279,14 @@ namespace Aya {
 		int bar_right = bar_left + scroller_width;
 		int bar_bottom = bar_top + limit;
 
+		auto SetScroller = [&](int pos) {
+			scroller_pos = pos;
+			if (scroller_pos < scroller_base) scroller_pos = scroller_base;
+			if (scroller_pos > scroller_end) scroller_pos = scroller_end;
+			lin = float(scroller_pos - scroller_base) / (scroller_end - scroller_base);
+			lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
+		};
+
 		if (PtInRect(states->mouse_state.x, states->mouse_state.y,
 			bar_left, bar_top, bar_right, bar_bottom)) {
 			if (states->mouse_state.action == MouseAction::LButtonDown) {
@@ -1294,11 +1302,7 @@ namespace Aya {
 			}
 
 			if (states->mouse_state.action == MouseAction::LButtonUp) {
-				scroller_pos = states->mouse_state.y - states->scroller_botton_down_offset;
-				if (scroller_pos < scroller_base) scroller_pos = scroller_base;
-				if (scroller_pos > scroller_end) scroller_pos = scroller_end;
-				lin = float(scroller_pos - scroller_base) / (scroller_end - scroller_base);
-				lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
+				SetScroller(states->mouse_state.y - states->scroller_botton_down_offset);
 
 				if (states->active_id == id)
 					states->active_id = -1;
@@ -1309,17 +1313,48 @@ namespace Aya {
 
 		if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
 			if (states->active_id == id) {
-				scroller_pos = states->mouse_state.y - states->scroller_botton_down_offset;
-				if (scroller_pos < scroller_base) scroller_pos = scroller_base;
-				if (scroller_pos > scroller_end) scroller_pos = scroller_end;
-				lin = float(scroller_pos - scroller_base) / (scroller_end - scroller_base);
-				lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
+				SetScroller(states->mouse_state.y - states->scroller_botton_down_offset);
 			}
 		}
 
 		if (states->mouse_state.action == MouseAction::LButtonUp)
 			if (states->active_id == id)
 				states->active_id = -1;
+
+		int area_left = 0;
+		int area_top = bar_base;
+		int area_right = states->dialog_width;
+		int area_bottom = bar_base + limit;
+
+		if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+			area_left, area_top, area_right, area_bottom)) {
+			switch (states->key_state.funckey) {
+			case FunctionKey::Home:
+				states->active_id = id;
+				SetScroller(scroller_base);
+				break;
+			case FunctionKey::End:
+				states->active_id = id;
+				SetScroller(scroller_end);
+				break;
+			case FunctionKey::PageUp:
+				states->active_id = id;
+				SetScroller(scroller_pos - page_control_height);
+				break;
+			case FunctionKey::PageDown:
+				states->active_id = id;
+				SetScroller(scroller_pos + page_control_height);
+				break;
+			case FunctionKey::UpArrow:
+				states->active_id = id;
+				SetScroller(scroller_pos - arrow_control_height);
+				break;
+			case FunctionKey::DownArrow:
+				states->active_id = id;
+				SetScroller(scroller_pos + arrow_control_height);
+				break;
+			}
+		}
 
 		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
