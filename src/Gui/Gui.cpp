@@ -568,7 +568,6 @@ namespace Aya {
 
 		states->editing_id = -1;
 		states->scroller_init_y = 0;
-		states->console_scroller = 1.0f;
 	}
 
 	void AyaGui::Release() {

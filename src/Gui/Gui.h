@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 #include <Windows.h>
 
 #include <gl/glew.h>
@@ -268,10 +269,6 @@ namespace Aya {
 		int scroller_origin_y;
 		int scroller_botton_down_offset;
 		bool scroller_active;
-
-		// Console states
-		std::string console_text_buffer;
-		float console_scroller;
 	};
 
 	class AyaGui {
@@ -299,6 +296,9 @@ namespace Aya {
 		static const int scroller_margin					= 15;
 		static const int page_control_height				= 50;
 		static const int arrow_control_height			= 20;
+		static const int slider_default_height			= 14;
+		static const int slider_default_width			= 140;
+		static const int slider_btn_default_width		= 7;
 
 	public:
 		static void Init();
@@ -334,6 +334,112 @@ namespace Aya {
 		static void Scroller(int limit, int actual, float &lin);
 		static void BeginScroller(int area_height, int &content_height, float &scroller);
 		static void EndScroller(int area_height, int &content_height, float &scroller);
+
+		template<typename T>
+		static bool Slider(const char *label, T &val, T min, T max, int width = slider_default_width) {
+			int id(states->current_id++);
+			bool modified = false;
+
+			if (label) Text(label);
+
+			if (width > states->widget_end_x - states->current_pos_x)
+				width = states->widget_end_x - states->current_pos_x;
+			const int slider_base = states->current_pos_x + slider_btn_default_width;
+			const int slider_end = states->current_pos_x + width - slider_btn_default_width;
+
+			
+			auto fix01 = [](float val, float min, float max) {
+				if (min == max) return 0.0f;
+				float value = (val - min) / (max - min);
+				if (value < 0.0f) return 0.0f;
+				if (value > 1.0f) return 1.0f;
+				return value;
+			};
+			auto fix = [](int val, int min, int max) {
+				if (val < min) return min;
+				if (val > max) return max;
+				return val;
+			};
+
+			float lin = fix01(float(val), float(min), float(max));
+			int button_x = int(slider_base + (slider_end - slider_base) * lin);
+
+			int bar_left = states->current_pos_x;
+			int bar_top = states->current_pos_y;
+			int bar_right = bar_left + width;
+			int bar_bottom = bar_top + slider_default_height;
+
+			if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+				bar_left, bar_top, bar_right, bar_bottom)) {
+				if (states->mouse_state.action == MouseAction::LButtonDown)
+					states->active_id = id;
+
+				if (states->mouse_state.action == MouseAction::LButtonUp) {
+					if (states->active_id == id) {
+						button_x = fix(states->mouse_state.x, slider_base, slider_end);
+						float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
+						val = T(min + (max - min) * btn_lin);
+						float lin = fix01(float(val), float(min), float(max));
+						button_x = int(slider_base + (slider_end - slider_base) * lin);
+
+						modified = true;
+						states->active_id = -1;
+					}
+				}
+
+				states->hovered_id = id;
+			}
+
+			if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
+				if (states->active_id == id) {
+					button_x = fix(states->mouse_state.x, slider_base, slider_end);
+					float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
+					val = T(min + (max - min) * btn_lin);
+					float lin = fix01(float(val), float(min), float(max));
+					button_x = int(slider_base + (slider_end - slider_base) * lin);
+
+					modified = true;
+				}
+			}
+
+			if (states->mouse_state.action == MouseAction::LButtonUp)
+				if (states->active_id == id)
+					states->active_id = -1;
+
+			Color4f color1 = states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+				Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+			Color4f color2 = states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+				Color4f(0.3f, 0.3f, 0.3f, 0.65f) : Color4f(0.15f, 0.15f, 0.15f, 0.5f);
+
+			GuiRenderer::instance()->drawRect(bar_left - 1, bar_top - 1, bar_right + 1, bar_bottom + 1, GuiRenderer::DEPTH_MID, false, Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+			GuiRenderer::instance()->drawRect(bar_left, bar_top, bar_right, bar_bottom, GuiRenderer::DEPTH_MID, true, color2, Color4f(1.0f, 1.0f, 1.0f, 0.6f));
+			GuiRenderer::instance()->drawRect(button_x - slider_btn_default_width, bar_top, button_x + slider_btn_default_width, bar_bottom, GuiRenderer::DEPTH_MID, true, color1);
+
+			{
+				std::stringstream text_stream;
+				text_stream.setf(std::ios::fixed);
+				text_stream.precision(2);
+				text_stream << val;
+				std::string str_val;
+				text_stream >> str_val;
+				const char *str = str_val.c_str();
+
+				SIZE text_extent;
+				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), str, strlen(str), &text_extent);
+				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+				GuiRenderer::instance()->drawString(bar_left + width / 2 - text_extent.cx / 2, bar_top + slider_btn_default_width - 4, GuiRenderer::DEPTH_MID, str);
+			}
+
+			if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+				states->current_pos_y += check_box_size + default_margin_bottom;
+				states->current_pos_x = padding_left;
+			}
+			else {
+				states->current_pos_x += width + default_margin_right;
+			}
+			
+			return 0;
+		}
 
 	private:
 		static bool PtInRect(int x0, int y0, int left, int top, int right, int bottom);
