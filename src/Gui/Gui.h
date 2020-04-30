@@ -202,6 +202,8 @@ namespace Aya {
 		UpArrow,
 		RightArrow,
 		DownArrow,
+		PageUp,
+		PageDown,
 		Insert,
 		BackSpace,
 		Delete,
