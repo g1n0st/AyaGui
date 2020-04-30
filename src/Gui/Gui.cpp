@@ -595,7 +595,7 @@ namespace Aya {
 	void AyaGui::BeginFrame() {
 		states->current_id = 0;
 		states->current_dialog_id = 0;
-		states->hovered_id = 0;
+		states->hovered_id = -1;
 	}
 
 	void AyaGui::EndFrame() {
