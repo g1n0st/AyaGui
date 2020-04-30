@@ -1026,8 +1026,8 @@ namespace Aya {
 		states->current_pos_y += line_margin_bottom;
 	}
 
-	void AyaGui::ComboBox(const char *lable, const std::vector<std::string> items, int &selected, int width) {
-		Text(lable);
+	void AyaGui::ComboBox(const char *label, const std::vector<std::string> items, int &selected, int width) {
+		if (label) Text(label);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical)
 			states->current_pos_y -= default_margin_bottom / 2;
