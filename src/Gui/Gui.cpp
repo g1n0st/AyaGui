@@ -1377,6 +1377,32 @@ namespace Aya {
 			color);
 	}
 
+	void AyaGui::ColorBlock(float r, float g, float b, int size) {
+		int block_left = states->current_pos_x;
+		int block_top = states->current_pos_y;
+		int block_right = block_left + size;
+		int block_bottom = block_top + size;
+
+		GuiRenderer::instance()->drawRect(block_left - 1, block_top - 1, block_right + 1, block_bottom + 1,
+			GuiRenderer::DEPTH_MID, false, Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+		GuiRenderer::instance()->drawRect(block_left, block_top, block_right, block_bottom,
+			GuiRenderer::DEPTH_MID, true, Color4f(r, g, b, 1.0f));
+
+		auto To0x = [](float val) {
+			static const char* table[0x10] = 
+			{ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
+
+			uint32_t uint_val = uint32_t(val * 0xFF);
+			return std::string(table[uint_val % 0x10]) + std::string(table[uint_val / 0x10]);
+		};
+
+		if (PtInRect(states->mouse_state.x, states->mouse_state.y, block_left, block_top, block_right, block_bottom)) {
+			std::string encode = "#" + To0x(r) + To0x(g) + To0x(b);
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			GuiRenderer::instance()->drawString(states->mouse_state.x + 15, states->mouse_state.y + 15, GuiRenderer::DEPTH_NEAR, encode.c_str());
+		}
+	}
+
 	void AyaGui::BeginScroller(int area_height, int &content_height, float &scroller) {
 		glEnable(GL_SCISSOR_TEST);
 		glScissor(states->dialog_pos_x,

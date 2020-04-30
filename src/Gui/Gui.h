@@ -299,6 +299,7 @@ namespace Aya {
 		static const int slider_default_height			= 14;
 		static const int slider_default_width			= 140;
 		static const int slider_btn_default_width		= 7;
+		static const int default_color_block_size		= 32;
 
 	public:
 		static void Init();
@@ -330,6 +331,7 @@ namespace Aya {
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
 		static bool CheckBox(const char *label, bool &checked);
 		static bool RadioButton(const char *label, int active, int &current);
+		static void ColorBlock(float r, float g, float b, int size = default_color_block_size);
 
 		static void Scroller(int limit, int actual, float &lin);
 		static void BeginScroller(int area_height, int &content_height, float &scroller);
