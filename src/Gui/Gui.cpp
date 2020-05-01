@@ -894,6 +894,36 @@ namespace Aya {
 		}
 	}
 
+	void AyaGui::Text(Color4f color, const char *str, ...) {
+		states->current_id++;
+
+		va_list args;
+		va_start(args, str);
+
+		char buff[1024];
+		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+
+		va_end(args);
+
+		glColor4f(color.r, color.g, color.b, color.a);
+		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y + 3, GuiRenderer::DEPTH_MID, buff);
+
+		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
+			states->current_pos_y += text_height + default_margin_bottom;
+			states->current_pos_x = padding_left;
+		}
+		else {
+			int line_length = 0;
+			SIZE text_extent;
+			for (int i = 0; i < size; i++) {
+				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &buff[i], 1, &text_extent);
+				line_length += text_extent.cx;
+			}
+
+			states->current_pos_x += line_length + default_margin_right;
+		}
+	}
+
 	void AyaGui::MultilineText(const char *str, ...) {
 		states->current_id++;
 

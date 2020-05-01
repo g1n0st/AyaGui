@@ -324,6 +324,7 @@ namespace Aya {
 		static bool HandleKeyboardEvent(const KeyboardEvent& keyArgs);
 
 		static void Text(const char *str, ...);
+		static void Text(Color4f color, const char *str, ...);
 		static void MultilineText(const char *str, ...);
 		static bool Button(const char *label, const int width = 114514, const int height = button_default_height);
 		static void Line();
