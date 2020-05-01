@@ -88,7 +88,7 @@ namespace Aya {
 		GLfloat r, g, b, a;
 
 		Color4f() = default;
-		Color4f(GLfloat r0, GLfloat g0, GLfloat b0, GLfloat a0) noexcept :
+		Color4f(GLfloat r0, GLfloat g0, GLfloat b0, GLfloat a0 = 1.0f) noexcept :
 			r(r0), g(g0), b(b0), a(a0) {
 		}
 	};
