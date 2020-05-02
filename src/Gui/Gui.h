@@ -308,6 +308,10 @@ namespace Aya {
 
 		static void Vertical();
 		static void Horizontal();
+		static void ExpandVertical(int margin = default_margin_bottom);
+		static void ExpandHorizontal(int margin = default_margin_right);
+		static void NextLine(int margin = default_margin_bottom, int padding = padding_left);
+		static void Target(int x, int y);
 
 		static void BeginFrame();
 		static void EndFrame();

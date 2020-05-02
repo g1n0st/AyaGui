@@ -591,6 +591,21 @@ namespace Aya {
 		states->current_growth_strategy = GrowthStrategy::Horizontal;
 	}
 
+	void AyaGui::ExpandVertical(int margin) {
+		states->current_pos_y += margin;
+	}
+	void AyaGui::ExpandHorizontal(int margin) {
+		states->current_pos_x += margin;
+	}
+	void AyaGui::NextLine(int margin, int padding) {
+		states->current_pos_y += margin;
+		states->current_pos_x = padding;
+	}
+	void AyaGui::Target(int x, int y) {
+		states->current_pos_x = x;
+		states->current_pos_y = y;
+	}
+
 	void AyaGui::BeginFrame() {
 		states->current_id = 0;
 		states->current_dialog_id = 0;
