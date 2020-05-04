@@ -71,9 +71,9 @@ void OnKeyboardEvent(GLFWwindow *window, int key, int scancode, int action, int 
 		keyboardEvent.key = key;
 		keyboardEvent.keymode = KeyMode::None;
 
-		if (mods | GLFW_MOD_CONTROL) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Ctrl);
-		if (mods | GLFW_MOD_SHIFT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Shift);
-		if (mods | GLFW_MOD_ALT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Alt);
+		if (mods & GLFW_MOD_CONTROL) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Ctrl);
+		if (mods & GLFW_MOD_SHIFT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Shift);
+		if (mods & GLFW_MOD_ALT) keyboardEvent.keymode = KeyMode(keyboardEvent.keymode | Alt);
 	}
 	else if (action == GLFW_RELEASE) {
 		keyboardEvent.key = 0;
