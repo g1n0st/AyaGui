@@ -343,6 +343,7 @@ namespace Aya {
 		static void ColorBlock(float r, float g, float b, const int size = default_color_block_size);
 		static void InputText(std::string &str, const int width = input_text_default_width,
 			const bool auto_select_all = false, const bool auto_clear_on_enter = false);
+		static bool InputDigit(const char *label, int &digit);
 
 		static void Scroller(int limit, int actual, float &lin);
 		static void BeginScroller(int area_height, int &content_height, float &scroller);

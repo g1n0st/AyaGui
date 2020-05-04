@@ -1640,6 +1640,31 @@ namespace Aya {
 		}
 	}
 
+	bool AyaGui::InputDigit(const char *label, int &digit) {
+		if (label) Text(label);
+
+		auto x0 = states->current_pos_x, y0 = states->current_pos_y;
+		auto prev_digit = digit;
+		
+		states->current_pos_x = x0 + 62;
+		if (Button("-", 20, 18)) --digit;
+
+		states->current_pos_x = x0 + 86;
+		states->current_pos_y = y0;
+		if (Button("+", 20, 18)) ++digit;
+
+		states->current_pos_x = x0;
+		states->current_pos_y = y0;
+		char buf[32];
+		_itoa_s(digit, buf, 10);
+
+		std::string str(buf);
+		InputText(str, 60, true);
+
+		digit = atoi(str.c_str());
+		return digit != prev_digit;
+	}
+
 	void AyaGui::Scroller(int limit, int actual, float &lin) {
 		int id(states->current_id++);
 
