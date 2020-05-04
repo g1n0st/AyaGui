@@ -263,6 +263,7 @@ namespace Aya {
 		int select_idx;
 		std::string string_buffer;
 		std::vector<int> string_width_prefix_sum;
+		std::string clipboard;
 
 		// Scroller states
 		int scroller_init_y;
@@ -300,6 +301,9 @@ namespace Aya {
 		static const int slider_default_width			= 140;
 		static const int slider_btn_default_width		= 7;
 		static const int default_color_block_size		= 32;
+		static const int input_text_default_width		= 100;
+		static const int input_text_default_height		= 18;
+		static const int input_text_indent				= 4;
 
 	public:
 		static void Init();
@@ -336,7 +340,9 @@ namespace Aya {
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
 		static bool CheckBox(const char *label, bool &checked);
 		static bool RadioButton(const char *label, int active, int &current);
-		static void ColorBlock(float r, float g, float b, int size = default_color_block_size);
+		static void ColorBlock(float r, float g, float b, const int size = default_color_block_size);
+		static void InputText(std::string &str, const int width = input_text_default_width,
+			const bool auto_select_all = false, const bool auto_clear_on_enter = false);
 
 		static void Scroller(int limit, int actual, float &lin);
 		static void BeginScroller(int area_height, int &content_height, float &scroller);
