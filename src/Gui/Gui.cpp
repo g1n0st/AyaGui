@@ -1194,7 +1194,7 @@ namespace Aya {
 			states->current_pos_x += width + default_margin_bottom;
 	}
 
-	bool AyaGui::CheckBox(const char *label, bool &checked) {
+	bool AyaGui::CheckBox(const char *label, bool &checked, const bool banned) {
 		bool triggered = false;
 
 		int id(states->current_id++);
@@ -1204,26 +1204,33 @@ namespace Aya {
 		int box_right = box_left + check_box_size;
 		int box_bottom = box_top + check_box_size;
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
-				states->active_id = id;
-			if (states->mouse_state.action == MouseAction::LButtonUp) {
-				if (states->active_id == id) {
-					states->active_id = -1;
-					checked = !checked;
-					triggered = true;
+		if (!banned) {
+			if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
+				if (states->mouse_state.action == MouseAction::LButtonDown)
+					states->active_id = id;
+				if (states->mouse_state.action == MouseAction::LButtonUp) {
+					if (states->active_id == id) {
+						states->active_id = -1;
+						checked = !checked;
+						triggered = true;
+					}
 				}
-			}
 
-			states->hovered_id = id;
+				states->hovered_id = id;
+			}
+			else {
+				if (states->mouse_state.action == MouseAction::Move)
+					if (states->active_id == id)
+						states->active_id = -1;
+			}
 		}
 		else {
-			if (states->mouse_state.action == MouseAction::Move)
-				if (states->active_id == id)
-					states->active_id = -1;
+			if (states->active_id == id)
+				states->active_id = -1;
 		}
 
-		Color4f color1 = states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
+			states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(box_left,
 			box_top,
 			box_right,
@@ -1232,7 +1239,8 @@ namespace Aya {
 			false,
 			color1);
 
-		Color4f color2 = checked ? color1 : states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(1.0f, 1.0f, 1.0f, 0.1f);
+		Color4f color2 = checked ? color1 : states->hovered_id == id && states->active_id == -1 && !banned ? 
+			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(1.0f, 1.0f, 1.0f, 0.1f);
 		GuiRenderer::instance()->drawRect(box_left + 2,
 			box_top + 2,
 			box_right - 2,
@@ -1241,7 +1249,10 @@ namespace Aya {
 			true,
 			color2);
 
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		if (!banned)
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		else
+			glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 		GuiRenderer::instance()->drawString(box_right + 7, box_top + 2, GuiRenderer::DEPTH_MID, label);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {

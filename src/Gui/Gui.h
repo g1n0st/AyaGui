@@ -338,7 +338,7 @@ namespace Aya {
 		static void Line();
 		static void ComboBox(const char *label, 
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width, const bool banned = false);
-		static bool CheckBox(const char *label, bool &checked);
+		static bool CheckBox(const char *label, bool &checked, const bool banned = false);
 		static bool RadioButton(const char *label, int active, int &current);
 		static void ColorBlock(float r, float g, float b, const int size = default_color_block_size);
 		static void InputText(std::string &str, const int width = input_text_default_width,
