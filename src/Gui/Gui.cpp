@@ -996,7 +996,7 @@ namespace Aya {
 			states->current_pos_x += default_margin_right;
 	}
 
-	bool AyaGui::Button(const char *label, const int width, const int height) {
+	bool AyaGui::Button(const char *label, const int width, const int height, const bool banned) {
 		bool triggered = false;
 		int id(states->current_id++);
 
@@ -1006,25 +1006,36 @@ namespace Aya {
 		int top = states->current_pos_y;
 		int bottom = states->current_pos_y + height;
 
-		bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom);
+		if (!banned) {
+			bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom);
 
-		if (in_rect) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
-				states->active_id = id;
+			if (in_rect) {
+				if (states->mouse_state.action == MouseAction::LButtonDown)
+					states->active_id = id;
 
-			states->hovered_id = id;
-		}
-
-		if (states->mouse_state.action == MouseAction::LButtonUp) {
-			if (states->active_id == id) {
-				states->active_id = -1;
-				if (in_rect)
-					triggered = true;
+				states->hovered_id = id;
 			}
+
+			if (states->mouse_state.action == MouseAction::LButtonUp) {
+				if (states->active_id == id) {
+					states->active_id = -1;
+					if (in_rect)
+						triggered = true;
+				}
+			}
+		}
+		else {
+			if (states->active_id == id)
+				states->active_id = -1;
 		}
 
 		float btn_radius = 5.0f;
-		if (states->hovered_id == id && states->active_id == id) {
+		if (banned) {
+			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
+				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.3f));
+			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
+		}
+		else if (states->hovered_id == id && states->active_id == id) {
 			GuiRenderer::instance()->drawRoundedRect(left + 1, top + 1, right - 1, bottom - 1,
 				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.65f));
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);

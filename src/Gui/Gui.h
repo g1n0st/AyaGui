@@ -334,7 +334,7 @@ namespace Aya {
 		static void Text(const char *str, ...);
 		static void Text(Color4f color, const char *str, ...);
 		static void MultilineText(const char *str, ...);
-		static bool Button(const char *label, const int width = 114514, const int height = button_default_height);
+		static bool Button(const char *label, const int width = 114514, const int height = button_default_height, const bool banned = false);
 		static void Line();
 		static void ComboBox(const char *label, 
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width);
