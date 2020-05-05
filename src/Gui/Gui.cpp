@@ -1082,7 +1082,7 @@ namespace Aya {
 		states->current_pos_y += line_margin_bottom;
 	}
 
-	void AyaGui::ComboBox(const char *label, const std::vector<std::string> items, int &selected, int width) {
+	void AyaGui::ComboBox(const char *label, const std::vector<std::string> items, int &selected, int width, const bool banned) {
 		if (label) Text(label);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical)
@@ -1101,28 +1101,38 @@ namespace Aya {
 		static bool list_down_current_frame;
 		list_down_current_frame = false;
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y, frame_left, frame_top, frame_right, frmae_bottom)) {
-			if (states->mouse_state.action == MouseAction::LButtonDown) {
-				if (states->active_id != id)
-					states->active_id = id;
-				else if (states->active_id == id)
-					states->active_id = -1;
+		if (!banned) {
+			if (PtInRect(states->mouse_state.x, states->mouse_state.y, frame_left, frame_top, frame_right, frmae_bottom)) {
+				if (states->mouse_state.action == MouseAction::LButtonDown) {
+					if (states->active_id != id)
+						states->active_id = id;
+					else if (states->active_id == id)
+						states->active_id = -1;
 
-				list_down_current_frame = true;
+					list_down_current_frame = true;
+				}
+
+				states->hovered_id = id;
 			}
-
-			states->hovered_id = id;
+		}
+		else {
+			if (states->active_id == id)
+				states->active_id = -1;
 		}
 
-		Color4f button_color = states->active_id == id || states->hovered_id == id && states->active_id == -1 ? 
+		Color4f button_color = !banned ? (states->active_id == id || states->hovered_id == id && states->active_id == -1 ? 
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : 
-			Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+			Color4f(1.0f, 1.0f, 1.0f, 0.5f)) : Color4f(1.0f, 1.0f, 1.0f, 0.3f);
 
 		GuiRenderer::instance()->drawRect(frame_left, frame_top, frame_right, frmae_bottom, GuiRenderer::DEPTH_MID, false, button_color);
 		GuiRenderer::instance()->drawRect(frame_right - combo_box_height, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
 		
 		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		if (!banned)
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		else
+			glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
+
 		if (selected >= 0 && selected < int(items.size()))
 			GuiRenderer::instance()->drawString(frame_left + 3, frame_top + 5, GuiRenderer::DEPTH_MID, items[selected].c_str());
 		else
