@@ -1268,7 +1268,7 @@ namespace Aya {
 		return triggered;
 	}
 
-	bool AyaGui::RadioButton(const char *label, int active, int &current) {
+	bool AyaGui::RadioButton(const char *label, int active, int &current, const bool banned) {
 		bool triggered = false;
 
 		int id(states->current_id++);
@@ -1278,26 +1278,33 @@ namespace Aya {
 		int box_right = box_left + radio_button_circle_diameter;
 		int box_bottom = box_top + radio_button_circle_diameter;
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
-				states->active_id = id;
-			if (states->mouse_state.action == MouseAction::LButtonUp) {
-				if (states->active_id == id) {
-					states->active_id = -1;
-					current = active;
-					triggered = true;
+		if (!banned) {
+			if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
+				if (states->mouse_state.action == MouseAction::LButtonDown)
+					states->active_id = id;
+				if (states->mouse_state.action == MouseAction::LButtonUp) {
+					if (states->active_id == id) {
+						states->active_id = -1;
+						current = active;
+						triggered = true;
+					}
 				}
-			}
 
-			states->hovered_id = id;
+				states->hovered_id = id;
+			}
+			else {
+				if (states->mouse_state.action == MouseAction::Move)
+					if (states->active_id == id)
+						states->active_id = -1;
+			}
 		}
 		else {
-			if (states->mouse_state.action == MouseAction::Move)
-				if (states->active_id == id)
-					states->active_id = -1;
+			if (states->active_id == id)
+				states->active_id = -1;
 		}
 
-		Color4f color1 = states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
+			states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
 			GuiRenderer::DEPTH_MID,
@@ -1305,7 +1312,8 @@ namespace Aya {
 			false,
 			color1);
 
-		Color4f color2 = (current == active) ? color1 : states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(0.0f, 0.0f, 0.0f, 0.0f);
+		Color4f color2 = (current == active) ? color1 : states->hovered_id == id && states->active_id == -1 && !banned ? 
+			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(0.0f, 0.0f, 0.0f, 0.0f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
 			GuiRenderer::DEPTH_MID,
@@ -1313,7 +1321,10 @@ namespace Aya {
 			true,
 			color2);
 
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		if (!banned)
+			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		else
+			glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 		GuiRenderer::instance()->drawString(box_right + 7, box_top + 2, GuiRenderer::DEPTH_MID, label);
 
 		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
