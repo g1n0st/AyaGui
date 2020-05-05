@@ -1702,18 +1702,18 @@ namespace Aya {
 		}
 	}
 
-	bool AyaGui::InputDigit(const char *label, int &digit) {
+	bool AyaGui::InputDigit(const char *label, int &digit, const bool banned) {
 		if (label) Text(label);
 
 		auto x0 = states->current_pos_x, y0 = states->current_pos_y;
 		auto prev_digit = digit;
 		
 		states->current_pos_x = x0 + 62;
-		if (Button("-", 20, 18)) --digit;
+		if (Button("-", 20, 18, banned)) --digit;
 
 		states->current_pos_x = x0 + 86;
 		states->current_pos_y = y0;
-		if (Button("+", 20, 18)) ++digit;
+		if (Button("+", 20, 18, banned)) ++digit;
 
 		states->current_pos_x = x0;
 		states->current_pos_y = y0;
@@ -1721,7 +1721,7 @@ namespace Aya {
 		_itoa_s(digit, buf, 10);
 
 		std::string str(buf);
-		InputText(str, 60, true);
+		InputText(str, 60, true, false, banned);
 
 		digit = atoi(str.c_str());
 		return digit != prev_digit;
