@@ -1366,7 +1366,7 @@ namespace Aya {
 		}
 	}
 
-	void AyaGui::InputText(std::string &str, int width, const bool auto_select_all, const bool auto_clear_on_enter) {
+	void AyaGui::InputText(std::string &str, int width, const bool auto_select_all, const bool auto_clear_on_enter, const bool banned) {
 		int id(states->current_id++);
 
 		auto calc_prefix = [&]() {
@@ -1387,29 +1387,52 @@ namespace Aya {
 		int right = left + width;
 		int bottom = top + input_text_default_height;
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom)) {
-			if (states->mouse_state.action == MouseAction::LButtonDbClick || (states->mouse_state.action == MouseAction::LButtonDown && auto_select_all)) {
-				states->active_id = id;
-				if (states->editing_id != id) {
-					states->editing_id = id;
-					states->string_buffer = str;
+		if (!banned) {
+			if (PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom)) {
+				if (states->mouse_state.action == MouseAction::LButtonDbClick || (states->mouse_state.action == MouseAction::LButtonDown && auto_select_all)) {
+					states->active_id = id;
+					if (states->editing_id != id) {
+						states->editing_id = id;
+						states->string_buffer = str;
+					}
+
+					calc_prefix();
+
+					states->cursor_pos = input_text_indent + (states->string_buffer.length() > 0 ? states->string_width_prefix_sum.back() : 0);
+					states->cursor_idx = states->string_buffer.length();
+					states->select_idx = 0;
+				}
+				else if (states->mouse_state.action == MouseAction::LButtonDown) {
+					states->active_id = id;
+					if (states->editing_id != id) {
+						states->editing_id = id;
+						states->string_buffer = str;
+					}
+
+					calc_prefix();
+
+					int dist_x = states->mouse_state.x - (states->current_pos_x + 3);
+					int char_it = std::lower_bound(states->string_width_prefix_sum.begin(), states->string_width_prefix_sum.end(), dist_x) -
+						states->string_width_prefix_sum.begin();
+					if (--char_it < 0) char_it = 0;
+
+					states->cursor_idx = char_it;
+					states->cursor_pos = input_text_indent + states->string_width_prefix_sum[char_it];
+					states->select_idx = states->cursor_idx;
 				}
 
-				calc_prefix();
-
-				states->cursor_pos = input_text_indent + (states->string_buffer.length() > 0 ? states->string_width_prefix_sum.back() : 0);
-				states->cursor_idx = states->string_buffer.length();
-				states->select_idx = 0;
+				states->hovered_id = id;
 			}
-			else if (states->mouse_state.action == MouseAction::LButtonDown) {
-				states->active_id = id;
-				if (states->editing_id != id) {
-					states->editing_id = id;
-					states->string_buffer = str;
+			else if (states->mouse_state.action == MouseAction::LButtonDown || states->mouse_state.action == MouseAction::LButtonDbClick) {
+				if (states->editing_id == id) {
+					states->editing_id = -1;
+					str = states->string_buffer;
 				}
+				if (states->active_id == id)
+					states->active_id = -1;
+			}
 
-				calc_prefix();
-
+			if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down && states->active_id == id) {
 				int dist_x = states->mouse_state.x - (states->current_pos_x + 3);
 				int char_it = std::lower_bound(states->string_width_prefix_sum.begin(), states->string_width_prefix_sum.end(), dist_x) -
 					states->string_width_prefix_sum.begin();
@@ -1417,219 +1440,212 @@ namespace Aya {
 
 				states->cursor_idx = char_it;
 				states->cursor_pos = input_text_indent + states->string_width_prefix_sum[char_it];
-				states->select_idx = states->cursor_idx;
 			}
 
-			states->hovered_id = id;
-		}
-		else if (states->mouse_state.action == MouseAction::LButtonDown || states->mouse_state.action == MouseAction::LButtonDbClick) {
-			if (states->editing_id == id) {
-				states->editing_id = -1;
-				str = states->string_buffer;
-			}
-			if (states->active_id == id)
-				states->active_id = -1;
-		}
-
-		if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down && states->active_id == id) {
-			int dist_x = states->mouse_state.x - (states->current_pos_x + 3);
-			int char_it = std::lower_bound(states->string_width_prefix_sum.begin(), states->string_width_prefix_sum.end(), dist_x) -
-				states->string_width_prefix_sum.begin();
-			if (--char_it < 0) char_it = 0;
-
-			states->cursor_idx = char_it;
-			states->cursor_pos = input_text_indent + states->string_width_prefix_sum[char_it];
-		}
-
-		if (states->active_id == id && (states->key_state.funckey != FunctionKey::None || states->key_state.key != '\0')) {
-			switch (states->key_state.funckey) {
-			case FunctionKey::LeftArrow: {
-				auto ori_idx = states->cursor_idx--;
-				if (states->cursor_idx < 0) states->cursor_idx = 0;
-				states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
-				if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::RightArrow: {
-				auto ori_idx = states->cursor_idx++;
-				if (states->cursor_idx > (int)states->string_buffer.length()) states->cursor_idx = states->string_buffer.length();
-				states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
-				if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::UpArrow: {
-				states->select_idx = 0;
-				break;
-			}
-			case FunctionKey::DownArrow: {
-				states->select_idx = states->string_buffer.length();
-				break;
-			}
-			case FunctionKey::Enter: {
-				if (states->editing_id == id && states->active_id == id) {
-					str = states->string_buffer;
-					if (auto_clear_on_enter) {
-						states->string_buffer.clear();
-
-						states->cursor_idx = states->select_idx = 0;
-						states->cursor_pos = input_text_indent;
-						calc_prefix();
-					}
-					else {
-						states->editing_id = -1;
-						states->active_id = -1;
-					}
+			if (states->active_id == id && (states->key_state.funckey != FunctionKey::None || states->key_state.key != '\0')) {
+				switch (states->key_state.funckey) {
+				case FunctionKey::LeftArrow: {
+					auto ori_idx = states->cursor_idx--;
+					if (states->cursor_idx < 0) states->cursor_idx = 0;
+					states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
+					if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
+					break;
 				}
-				states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::BackSpace: {
-				if (states->cursor_idx != states->select_idx) {
-					auto min_idx = states->select_idx;
-					auto max_idx = states->cursor_idx;
-					if (min_idx > max_idx) std::swap(min_idx, max_idx);
-					states->string_buffer.erase(min_idx, max_idx - min_idx);
-					states->cursor_idx = min_idx;
-					states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
-					calc_prefix();
+				case FunctionKey::RightArrow: {
+					auto ori_idx = states->cursor_idx++;
+					if (states->cursor_idx > (int)states->string_buffer.length()) states->cursor_idx = states->string_buffer.length();
+					states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
+					if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
+					break;
 				}
-				else if (states->cursor_idx > 0) {
-					int shift = states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[states->cursor_idx - 1];
-					states->string_buffer.erase(states->cursor_idx - 1, 1);
-					
-					calc_prefix();
-
-					states->cursor_pos -= shift;
-					states->cursor_idx--;
-				}
-				states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::Delete: {
-				if (states->cursor_idx != states->select_idx) {
-					auto min_idx = states->select_idx;
-					auto max_idx = states->cursor_idx;
-					if (min_idx > max_idx) std::swap(min_idx, max_idx);
-					states->string_buffer.erase(min_idx, max_idx - min_idx);
-					states->cursor_idx = min_idx;
-					states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
-					calc_prefix();
-				}
-				else if (states->cursor_idx < (int)states->string_buffer.length()) {
-					int indent = states->string_width_prefix_sum[states->cursor_idx + 1] - states->string_width_prefix_sum[states->cursor_idx];
-					states->string_buffer.erase(states->cursor_idx, 1);
-
-					calc_prefix();
-				}
-				states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::Home: {
-				states->cursor_pos = input_text_indent;
-				states->cursor_idx = 0;
-				states->select_idx = states->cursor_idx;
-				break;
-			}
-			case FunctionKey::End: {
-				states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
-				states->cursor_idx = states->string_width_prefix_sum.size() - 1;
-				states->select_idx = states->cursor_idx;
-				break;
-			}
-			}
-
-			if (states->key_state.keymode == KeyMode::Ctrl) {
-				switch (states->key_state.key) {
-				case 'A':
-				case 'a':
+				case FunctionKey::UpArrow: {
 					states->select_idx = 0;
-					states->cursor_idx = states->string_buffer.length();
-					states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
 					break;
+				}
+				case FunctionKey::DownArrow: {
+					states->select_idx = states->string_buffer.length();
+					break;
+				}
+				case FunctionKey::Enter: {
+					if (states->editing_id == id && states->active_id == id) {
+						str = states->string_buffer;
+						if (auto_clear_on_enter) {
+							states->string_buffer.clear();
 
-				case 'C':
-				case 'c':
-					if (states->cursor_idx != states->select_idx) {
-						auto min_idx = states->select_idx;
-						auto max_idx = states->cursor_idx;
-						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-						states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
+							states->cursor_idx = states->select_idx = 0;
+							states->cursor_pos = input_text_indent;
+							calc_prefix();
+						}
+						else {
+							states->editing_id = -1;
+							states->active_id = -1;
+						}
 					}
+					states->select_idx = states->cursor_idx;
 					break;
-
-				case 'X':
-				case 'x':
+				}
+				case FunctionKey::BackSpace: {
 					if (states->cursor_idx != states->select_idx) {
 						auto min_idx = states->select_idx;
 						auto max_idx = states->cursor_idx;
 						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-						states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
-
 						states->string_buffer.erase(min_idx, max_idx - min_idx);
-						states->cursor_idx = states->select_idx = min_idx;
+						states->cursor_idx = min_idx;
 						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
 						calc_prefix();
 					}
-					break;
+					else if (states->cursor_idx > 0) {
+						int shift = states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[states->cursor_idx - 1];
+						states->string_buffer.erase(states->cursor_idx - 1, 1);
 
-				case 'V':
-				case 'v':
-					if (states->clipboard.length()) {
+						calc_prefix();
+
+						states->cursor_pos -= shift;
+						states->cursor_idx--;
+					}
+					states->select_idx = states->cursor_idx;
+					break;
+				}
+				case FunctionKey::Delete: {
+					if (states->cursor_idx != states->select_idx) {
 						auto min_idx = states->select_idx;
 						auto max_idx = states->cursor_idx;
 						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-
-						SIZE text_extent;
-						GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), states->clipboard.c_str(), states->clipboard.length(), &text_extent);
-						if (states->string_width_prefix_sum.back() + text_extent.cx -
-							(states->string_width_prefix_sum[max_idx] - states->string_width_prefix_sum[min_idx]) >= width - input_text_indent)
-							break;
-
-						if (states->cursor_idx != states->select_idx) {
-							states->string_buffer.erase(min_idx, max_idx - min_idx);
-							states->string_buffer.insert(min_idx, states->clipboard);
-							states->cursor_idx = states->select_idx = min_idx + states->clipboard.length();
-						}
-						else {
-							states->string_buffer.insert(states->cursor_idx, states->clipboard);
-							states->cursor_idx = states->select_idx = states->cursor_idx + states->clipboard.length();
-						}
+						states->string_buffer.erase(min_idx, max_idx - min_idx);
+						states->cursor_idx = min_idx;
+						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+						calc_prefix();
+					}
+					else if (states->cursor_idx < (int)states->string_buffer.length()) {
+						int indent = states->string_width_prefix_sum[states->cursor_idx + 1] - states->string_width_prefix_sum[states->cursor_idx];
+						states->string_buffer.erase(states->cursor_idx, 1);
 
 						calc_prefix();
-						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[states->cursor_idx];
 					}
-
+					states->select_idx = states->cursor_idx;
 					break;
 				}
-			}
-
-			if (states->key_state.keymode == KeyMode::None && (states->key_state.key > 0x2F && states->key_state.key < 0x7F)) {
-				if (states->cursor_idx != states->select_idx) {
-					auto min_idx = states->select_idx;
-					auto max_idx = states->cursor_idx;
-					if (min_idx > max_idx) std::swap(min_idx, max_idx);
-					states->string_buffer.erase(min_idx, max_idx - min_idx);
-					states->cursor_idx = min_idx;
-					states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
-					calc_prefix();
+				case FunctionKey::Home: {
+					states->cursor_pos = input_text_indent;
+					states->cursor_idx = 0;
+					states->select_idx = states->cursor_idx;
+					break;
+				}
+				case FunctionKey::End: {
+					states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
+					states->cursor_idx = states->string_width_prefix_sum.size() - 1;
+					states->select_idx = states->cursor_idx;
+					break;
+				}
 				}
 
-				SIZE text_extent;
-				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &states->key_state.key, 1, &text_extent);
+				if (states->key_state.keymode == KeyMode::Ctrl) {
+					switch (states->key_state.key) {
+					case 'A':
+					case 'a':
+						states->select_idx = 0;
+						states->cursor_idx = states->string_buffer.length();
+						states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
+						break;
 
-				if (states->string_width_prefix_sum.back() + text_extent.cx < width - input_text_indent) {
-					states->string_buffer.insert(states->cursor_idx, { states->key_state.key });
+					case 'C':
+					case 'c':
+						if (states->cursor_idx != states->select_idx) {
+							auto min_idx = states->select_idx;
+							auto max_idx = states->cursor_idx;
+							if (min_idx > max_idx) std::swap(min_idx, max_idx);
+							states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
+						}
+						break;
 
-					calc_prefix();
+					case 'X':
+					case 'x':
+						if (states->cursor_idx != states->select_idx) {
+							auto min_idx = states->select_idx;
+							auto max_idx = states->cursor_idx;
+							if (min_idx > max_idx) std::swap(min_idx, max_idx);
+							states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
 
-					states->cursor_pos += text_extent.cx;
-					states->cursor_idx++;
-					states->select_idx = states->cursor_idx;
+							states->string_buffer.erase(min_idx, max_idx - min_idx);
+							states->cursor_idx = states->select_idx = min_idx;
+							states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+							calc_prefix();
+						}
+						break;
+
+					case 'V':
+					case 'v':
+						if (states->clipboard.length()) {
+							auto min_idx = states->select_idx;
+							auto max_idx = states->cursor_idx;
+							if (min_idx > max_idx) std::swap(min_idx, max_idx);
+
+							SIZE text_extent;
+							GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), states->clipboard.c_str(), states->clipboard.length(), &text_extent);
+							if (states->string_width_prefix_sum.back() + text_extent.cx -
+								(states->string_width_prefix_sum[max_idx] - states->string_width_prefix_sum[min_idx]) >= width - input_text_indent)
+								break;
+
+							if (states->cursor_idx != states->select_idx) {
+								states->string_buffer.erase(min_idx, max_idx - min_idx);
+								states->string_buffer.insert(min_idx, states->clipboard);
+								states->cursor_idx = states->select_idx = min_idx + states->clipboard.length();
+							}
+							else {
+								states->string_buffer.insert(states->cursor_idx, states->clipboard);
+								states->cursor_idx = states->select_idx = states->cursor_idx + states->clipboard.length();
+							}
+
+							calc_prefix();
+							states->cursor_pos = input_text_indent + states->string_width_prefix_sum[states->cursor_idx];
+						}
+
+						break;
+					}
+				}
+
+				if (states->key_state.keymode == KeyMode::None && (states->key_state.key > 0x2F && states->key_state.key < 0x7F)) {
+					if (states->cursor_idx != states->select_idx) {
+						auto min_idx = states->select_idx;
+						auto max_idx = states->cursor_idx;
+						if (min_idx > max_idx) std::swap(min_idx, max_idx);
+						states->string_buffer.erase(min_idx, max_idx - min_idx);
+						states->cursor_idx = min_idx;
+						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+						calc_prefix();
+					}
+
+					SIZE text_extent;
+					GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &states->key_state.key, 1, &text_extent);
+
+					if (states->string_width_prefix_sum.back() + text_extent.cx < width - input_text_indent) {
+						states->string_buffer.insert(states->cursor_idx, { states->key_state.key });
+
+						calc_prefix();
+
+						states->cursor_pos += text_extent.cx;
+						states->cursor_idx++;
+						states->select_idx = states->cursor_idx;
+					}
 				}
 			}
 		}
+		else {
+			if (states->active_id == id && states->editing_id == id) {
+				str = states->string_buffer;
+
+				states->cursor_idx = 0;
+				states->select_idx = 0;
+				states->cursor_pos = input_text_indent;
+			}
+			if (states->active_id == id)
+				states->active_id = -1;
+			if (states->editing_id == id)
+				states->editing_id = -1;
+		}
 
 		Color4f color = 
+			banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
 			states->hovered_id == id && states->active_id == -1 || states->active_id == id ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, false, color);
 
@@ -1643,7 +1659,10 @@ namespace Aya {
 		std::string &rendered_str = states->active_id != id ? str : states->string_buffer;
 
 		if (states->select_idx == states->cursor_idx || states->active_id != id) {
-			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			if (!banned)
+				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+			else
+				glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 			GuiRenderer::instance()->drawString(states->current_pos_x + 3, states->current_pos_y + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str());
 		}
 		else {
