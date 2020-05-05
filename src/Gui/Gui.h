@@ -339,7 +339,7 @@ namespace Aya {
 		static void ComboBox(const char *label, 
 			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width, const bool banned = false);
 		static bool CheckBox(const char *label, bool &checked, const bool banned = false);
-		static bool RadioButton(const char *label, int active, int &current);
+		static bool RadioButton(const char *label, int active, int &current, const bool banned = false);
 		static void ColorBlock(float r, float g, float b, const int size = default_color_block_size);
 		static void InputText(std::string &str, const int width = input_text_default_width,
 			const bool auto_select_all = false, const bool auto_clear_on_enter = false);
@@ -350,7 +350,7 @@ namespace Aya {
 		static void EndScroller(int area_height, int &content_height, float &scroller);
 
 		template<typename T>
-		static bool Slider(const char *label, T &val, T min, T max, int width = slider_default_width) {
+		static bool Slider(const char *label, T &val, T min, T max, int width = slider_default_width, const bool banned = false) {
 			int id(states->current_id++);
 			bool modified = false;
 
@@ -383,12 +383,29 @@ namespace Aya {
 			int bar_right = bar_left + width;
 			int bar_bottom = bar_top + slider_default_height;
 
-			if (PtInRect(states->mouse_state.x, states->mouse_state.y,
-				bar_left, bar_top, bar_right, bar_bottom)) {
-				if (states->mouse_state.action == MouseAction::LButtonDown)
-					states->active_id = id;
+			if (!banned) {
+				if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+					bar_left, bar_top, bar_right, bar_bottom)) {
+					if (states->mouse_state.action == MouseAction::LButtonDown)
+						states->active_id = id;
 
-				if (states->mouse_state.action == MouseAction::LButtonUp) {
+					if (states->mouse_state.action == MouseAction::LButtonUp) {
+						if (states->active_id == id) {
+							button_x = fix(states->mouse_state.x, slider_base, slider_end);
+							float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
+							val = T(min + (max - min) * btn_lin);
+							float lin = fix01(float(val), float(min), float(max));
+							button_x = int(slider_base + (slider_end - slider_base) * lin);
+
+							modified = true;
+							states->active_id = -1;
+						}
+					}
+
+					states->hovered_id = id;
+				}
+
+				if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
 					if (states->active_id == id) {
 						button_x = fix(states->mouse_state.x, slider_base, slider_end);
 						float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
@@ -397,37 +414,28 @@ namespace Aya {
 						button_x = int(slider_base + (slider_end - slider_base) * lin);
 
 						modified = true;
-						states->active_id = -1;
 					}
 				}
-
-				states->hovered_id = id;
 			}
-
-			if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
-				if (states->active_id == id) {
-					button_x = fix(states->mouse_state.x, slider_base, slider_end);
-					float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
-					val = T(min + (max - min) * btn_lin);
-					float lin = fix01(float(val), float(min), float(max));
-					button_x = int(slider_base + (slider_end - slider_base) * lin);
-
-					modified = true;
-				}
+			else {
+				if (states->active_id == id)
+					states->active_id = -1;
 			}
 
 			if (states->mouse_state.action == MouseAction::LButtonUp)
 				if (states->active_id == id)
 					states->active_id = -1;
 
-			Color4f color1 = states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+			Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) : states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
 				Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
-			Color4f color2 = states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+			Color4f color2 = banned ? Color4f(0.15f, 0.15f, 0.15f, 0.3f) : states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
 				Color4f(0.3f, 0.3f, 0.3f, 0.65f) : Color4f(0.15f, 0.15f, 0.15f, 0.5f);
 
-			GuiRenderer::instance()->drawRect(bar_left - 1, bar_top - 1, bar_right + 1, bar_bottom + 1, GuiRenderer::DEPTH_MID, false, Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+			GuiRenderer::instance()->drawRect(bar_left - 1, bar_top - 1, bar_right + 1, bar_bottom + 1, 
+				GuiRenderer::DEPTH_MID, false, banned ? Color4f(1.0f, 1.0f, 1.0f, 0.65f)  : Color4f(1.0f, 1.0f, 1.0f, 1.0f));
 			GuiRenderer::instance()->drawRect(bar_left, bar_top, bar_right, bar_bottom, GuiRenderer::DEPTH_MID, true, color2, Color4f(1.0f, 1.0f, 1.0f, 0.6f));
-			GuiRenderer::instance()->drawRect(button_x - slider_btn_default_width, bar_top, button_x + slider_btn_default_width, bar_bottom, GuiRenderer::DEPTH_MID, true, color1);
+			GuiRenderer::instance()->drawRect(button_x - slider_btn_default_width, bar_top, button_x + slider_btn_default_width, bar_bottom, 
+				GuiRenderer::DEPTH_MID, true, color1);
 
 			{
 				std::stringstream text_stream;
@@ -440,7 +448,10 @@ namespace Aya {
 
 				SIZE text_extent;
 				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), str, strlen(str), &text_extent);
-				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+				if (!banned)
+					glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+				else
+					glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 				GuiRenderer::instance()->drawString(bar_left + width / 2 - text_extent.cx / 2, bar_top + slider_btn_default_width - 4, GuiRenderer::DEPTH_MID, str);
 			}
 
