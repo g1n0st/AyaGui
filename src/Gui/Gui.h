@@ -304,6 +304,9 @@ namespace Aya {
 		static const int input_text_default_width		= 100;
 		static const int input_text_default_height		= 18;
 		static const int input_text_indent				= 4;
+		static const int header_showed_margin			= 16;
+		static const int header_height = 30;
+		static const int header_text_height = 11;
 
 	public:
 		static void Init();
@@ -348,6 +351,9 @@ namespace Aya {
 		static void Scroller(int limit, int actual, float &lin);
 		static void BeginScroller(int area_height, int &content_height, float &scroller);
 		static void EndScroller(int area_height, int &content_height, float &scroller);
+
+		static bool CollapsingHeader(const char *label, bool &show);
+		static void CloseHeaderSection();
 
 		template<typename T>
 		static bool Slider(const char *label, T &val, T min, T max, int width = slider_default_width, const bool banned = false) {

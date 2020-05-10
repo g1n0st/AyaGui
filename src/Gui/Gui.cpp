@@ -1881,6 +1881,54 @@ namespace Aya {
 		glDisable(GL_SCISSOR_TEST);
 	}
 
+	bool AyaGui::CollapsingHeader(const char *label, bool &show) {
+		int id(states->current_id++);
+
+		int head_left = states->current_pos_x;
+		int head_top = states->current_pos_y;
+		int head_right = states->widget_end_x;
+		int head_bottom = states->current_pos_y + (show ? header_text_height : header_height);
+
+		bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, head_left, head_top, head_right, head_bottom);
+
+		if (in_rect) {
+			if (states->mouse_state.action == MouseAction::LButtonDown)
+				states->active_id = id;
+
+			states->hovered_id = id;
+		}
+
+		if (states->mouse_state.action == MouseAction::LButtonUp) {
+			if (states->active_id == id) {
+				states->active_id = -1;
+				if (in_rect)
+					show = !show;
+			}
+		}
+
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, label);
+
+		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
+			Color4f(1.0f, 1.0f, 1.0f, 1.0f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+		glColor4fv((float*)&color);
+		GuiRenderer::instance()->drawLine(states->current_pos_x, states->current_pos_y + header_text_height + 1, 
+			states->widget_end_x, states->current_pos_y + header_text_height + 1, GuiRenderer::DEPTH_MID);
+
+		if (!show)
+			GuiRenderer::instance()->drawString(states->widget_end_x - 15, states->current_pos_y + header_text_height + 6, GuiRenderer::DEPTH_MID, "...");
+		else
+			states->current_pos_x += header_showed_margin;
+
+		states->current_growth_strategy = GrowthStrategy::Vertical;
+		states->current_pos_y += (!show ? header_height : header_text_height) + default_margin_right;
+
+		return show;
+	}
+	void AyaGui::CloseHeaderSection() {
+		states->current_pos_x -= header_showed_margin;
+	}
+
 	bool AyaGui::PtInRect(int x0, int y0, int left, int top, int right, int bottom) {
 		return x0 >= left && y0 >= top && x0 < right && y0 < bottom;
 	}
