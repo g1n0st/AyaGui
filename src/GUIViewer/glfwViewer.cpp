@@ -4,6 +4,8 @@
 #include <iostream>
 #include <ctime>
 
+#include <GUIViewer/Demo.h>
+
 using namespace Aya;
 
 void InitializeWindowsInfo() {
@@ -94,8 +96,6 @@ void OnMouseEvent(GLFWwindow *window, int key, int action, int mods) {
 	auto keyAction = [&](bool &down, MouseAction &mouse, int &lastClick,
 		const int Mode, const MouseAction DbClock, const MouseAction Down, const MouseAction Up) {
 		if (key == Mode) {
-			lastClick = 0;
-
 			if (action == GLFW_PRESS) {
 				down = true;
 				if (std::clock() - lastClick < doubleClickInterval) {
@@ -158,13 +158,11 @@ int main() {
 	AyaGui::Init();
 	AyaGui::Resize(1280, 800);
 
-	int x = 300, y = 300;
-	int x0 = 450, y0 = 600;
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// ...
+		demo_dialog();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
