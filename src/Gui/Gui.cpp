@@ -1917,16 +1917,11 @@ namespace Aya {
 
 		if (!show)
 			GuiRenderer::instance()->drawString(states->widget_end_x - 15, states->current_pos_y + header_text_height + 6, GuiRenderer::DEPTH_MID, "...");
-		else
-			states->current_pos_x += header_showed_margin;
 
 		states->current_growth_strategy = GrowthStrategy::Vertical;
 		states->current_pos_y += (!show ? header_height : header_text_height) + default_margin_right;
 
 		return show;
-	}
-	void AyaGui::CloseHeaderSection() {
-		states->current_pos_x -= header_showed_margin;
 	}
 
 	bool AyaGui::PtInRect(int x0, int y0, int left, int top, int right, int bottom) {
