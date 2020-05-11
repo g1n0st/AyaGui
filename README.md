@@ -1,10 +1,10 @@
 # AyaGui
 
-Last update: 2020/5/10
+Last update: 2020/5/11
 
 g1n0st
 
-**AyaGui** is a lite imgui-mode graphical user interface library in Modern C++ and OpenGL developed by g1n0st, inspired by Dear imgui.  It is lite, portable and self - contained(no external dependencies) You can easily integrate it into your 3D - pipeline enabled application at any time.
+**AyaGui** is a lite imgui-mode graphical user interface library based on Modern C++ and OpenGL developed by g1n0st, inspired by Dear imgui.  It is lite, portable and self - contained(no external dependencies) You can easily integrate it into your 3D - pipeline enabled application at any time.
 
 **AyaGui** is designed to enable fast iterations and to empower programmers to create content creation tools  and visualization / debug tools(as opposed to UI for the average end - user).  It favors simplicity and productivity toward this goal,  and lacks certain features normally found in more high - level libraries. 
 
@@ -46,8 +46,8 @@ You can see our complete demo in `GuiViewer/demo.cpp`, here gives an example cor
 AyaGui::Text("Hello, world %d", 123);
 if (AyaGui::Button("Save"))
     MySaveFunction();
-ImGui::InputText(buf);
-ImGui::Slider<float>("float", f, 0.0f, 1.0f);
+AyaGui::InputText(buf);
+AyaGui::Slider<float>("float", f, 0.0f, 1.0f);
 ```
 
 The screen shot of the complete demo:
