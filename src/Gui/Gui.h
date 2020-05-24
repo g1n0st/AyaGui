@@ -97,27 +97,27 @@ namespace Aya {
 	private:
 		static GuiRenderer *mp_instance;
 
-		GLint m_text_list_base;
+		GLint m_textListBase;
 		GLint m_width, m_height;
 
 		HDC m_HDC;
 
-		GLuint m_handle_program;
-		GLuint m_handle_bg_tex;
-		GLuint m_handle_FBO;
-		GLuint m_handle_color_RBO;
+		GLuint m_handleProgram;
+		GLuint m_handleBackgroundTex;
+		GLuint m_handleFBO;
+		GLuint m_handleColorRBO;
 
 		// Gaussian blur weights and offsets
 		static const size_t BLUR_SAMPLE = 13;
-		GLfloat m_gaussian_weights[BLUR_SAMPLE];
-		GLfloat m_gaussian_offsets[BLUR_SAMPLE * 2];
+		GLfloat m_gaussianWeights[BLUR_SAMPLE];
+		GLfloat m_gaussianOffsets[BLUR_SAMPLE * 2];
 
 		// Precomputed coordinates for circle
 		static const size_t CIRCLE_VERTEX_COUNT = 24;
-		GLfloat m_circle_coords[CIRCLE_VERTEX_COUNT * 2];
+		GLfloat m_circleCoords[CIRCLE_VERTEX_COUNT * 2];
 		
-		static const GLchar *vert_shader_source;
-		static const GLchar *blur_frag_shader_source;
+		static const GLchar *s_vertShaderSource;
+		static const GLchar *s_blurFragShaderSource;
 
 	public:
 		static const GLfloat DEPTH_FAR;
@@ -231,81 +231,81 @@ namespace Aya {
 	};
 
 	struct GuiStates {
-		int screen_width;
-		int screen_height;
+		int screenWidth;
+		int screenHeight;
 		
-		int dialog_pos_x;
-		int dialog_pos_y;
-		int dialog_width;
-		int dialog_height;
+		int dialogPosX;
+		int dialogPosY;
+		int dialogWidth;
+		int dialogHeight;
 
-		int current_pos_x;
-		int current_pos_y;
-		int widget_end_x;
-		LayoutStrategy current_layout_strategy;
-		GrowthStrategy current_growth_strategy;
+		int currentPosX;
+		int currentPosY;
+		int widgetEndX;
+		LayoutStrategy currentLayoutStrategy;
+		GrowthStrategy currentGrowthStrategy;
 
-		int current_id;
-		int hovered_id;
-		int  active_id;
-		int current_dialog_id;
-		int active_dialog_id;
-		int moving_id;
-		MouseEvent mouse_state;
-		MouseEvent prev_global_mouse_state;
-		MouseEvent global_mouse_state;
-		KeyboardEvent key_state;
+		int currentId;
+		int hoveredId;
+		int  activeId;
+		int currentDialogId;
+		int activeDialogId;
+		int movingId;
+		MouseEvent mouseState;
+		MouseEvent prevGlobalMouseState;
+		MouseEvent globalMouseState;
+		KeyboardEvent keyState;
 
 		// Text edit states
-		int editing_id;
-		int cursor_pos;
-		int cursor_idx;
-		int select_idx;
-		std::string string_buffer;
-		std::vector<int> string_width_prefix_sum;
+		int editingId;
+		int cursorPos;
+		int cursorIdx;
+		int selectIdx;
+		std::string stringBuffer;
+		std::vector<int> stringWidthPrefixSum;
 		std::string clipboard;
 
 		// Scroller states
-		int scroller_init_y;
-		int scroller_origin_y;
-		int scroller_botton_down_offset;
-		bool scroller_active;
+		int scrollerInitY;
+		int scrollerOriginY;
+		int scrollerBottonDownOffset;
+		bool scrollerActive;
 	};
 
 	class AyaGui {
 	private:
 		static GuiStates *states;
-		static const int default_margin_bottom			= 10;
-		static const int default_margin_right			= 5;
-		static const int line_margin_bottom				= 8;
-		static const int padding_left					= 18;
-		static const int sidebar_padding_top				= 24;
-		static const int titled_dialog_padding_top		= 32;
-		static const int untitled_dialog_padding_top		= 12;
+		static const int c_defaultMarginBottom			= 10;
+		static const int c_defaultMarginRight			= 5;
+		static const int c_lineMarginBottom				= 8;
+		static const int c_paddingLeft					= 18;
+		static const int c_sidebarPaddingTop				= 24;
+		static const int c_titledDialogPaddingTop		= 32;
+		static const int c_untitledDialogPaddingTop		= 12;
 
-		static const int sidebar_width					= 200;
-		static const int dialog_title_height				= 24;
-		static const int text_height						= 10;
-		static const int multiline_text_height			= 16;
-		static const int button_default_height			= 24;
-		static const int combo_box_default_width			= 140;
-		static const int combo_box_height				= 18;
-		static const int combo_box_item_height			= 20;
-		static const int check_box_size					= 12;
-		static const int radio_button_circle_diameter	= 12;
-		static const int scroller_width					= 8;
-		static const int scroller_margin					= 15;
-		static const int page_control_height				= 50;
-		static const int arrow_control_height			= 20;
-		static const int slider_default_height			= 14;
-		static const int slider_default_width			= 140;
-		static const int slider_btn_default_width		= 7;
-		static const int default_color_block_size		= 32;
-		static const int input_text_default_width		= 100;
-		static const int input_text_default_height		= 18;
-		static const int input_text_indent				= 4;
-		static const int header_height					= 30;
-		static const int header_text_height				= 11;
+		static const int c_sidebarWidth					= 200;
+		static const int c_dialogTitleHeight				= 24;
+		static const int c_textHeight					= 10;
+		static const int c_multilineTextHeight			= 16;
+		static const int c_buttonDefaultHeight			= 24;
+		static const int c_comboBoxDefaultWidth			= 140;
+		static const int c_comboBoxHeight				= 18;
+		static const int c_comboBoxItemHeight			= 20;
+		static const int c_checkBoxSize					= 12;
+		static const int c_radioButtonCircleDiameter		= 12;
+		static const int c_scrollerWidth					= 8;
+		static const int c_scrollerMargin				= 15;
+		static const int c_pageControlHeight				= 50;
+		static const int c_arrowControlHeight			= 20;
+		static const int c_sliderDefaultHeight			= 14;
+		static const int c_sliderDefaultWidth			= 140;
+		static const int c_sliderButtonDefaultWidth		= 7;
+		static const int c_defaultColorBlockSize			= 32;
+		static const int c_inputTextDefaultWidth			= 100;
+		static const int c_inputTextDefaultHeight		= 18;
+		static const int c_inputTextIndent				= 4;
+		static const int c_headerHeight					= 30;
+		static const int c_headerTextHeight				= 11;
 
 	public:
 		static void Init();
@@ -314,9 +314,9 @@ namespace Aya {
 
 		static void Vertical();
 		static void Horizontal();
-		static void ExpandVertical(int margin = default_margin_bottom);
-		static void ExpandHorizontal(int margin = default_margin_right);
-		static void NextLine(int margin = default_margin_bottom, int padding = padding_left);
+		static void ExpandVertical(int margin = c_defaultMarginBottom);
+		static void ExpandHorizontal(int margin = c_defaultMarginRight);
+		static void NextLine(int margin = c_defaultMarginBottom, int padding = c_paddingLeft);
 		static void Target(int x, int y);
 
 		static void BeginFrame();
@@ -336,14 +336,14 @@ namespace Aya {
 		static void Text(const char *str, ...);
 		static void Text(Color4f color, const char *str, ...);
 		static void MultilineText(const char *str, ...);
-		static bool Button(const char *label, const int width = 114514, const int height = button_default_height, const bool banned = false);
+		static bool Button(const char *label, const int width = 114514, const int height = c_buttonDefaultHeight, const bool banned = false);
 		static void Line();
 		static void ComboBox(const char *label, 
-			const std::vector<std::string> items, int &selected, const int width = combo_box_default_width, const bool banned = false);
+			const std::vector<std::string> items, int &selected, const int width = c_comboBoxDefaultWidth, const bool banned = false);
 		static bool CheckBox(const char *label, bool &checked, const bool banned = false);
 		static bool RadioButton(const char *label, int active, int &current, const bool banned = false);
-		static void ColorBlock(float r, float g, float b, const int size = default_color_block_size);
-		static void InputText(std::string &str, const int width = input_text_default_width,
+		static void ColorBlock(float r, float g, float b, const int size = c_defaultColorBlockSize);
+		static void InputText(std::string &str, const int width = c_inputTextDefaultWidth,
 			const bool auto_select_all = false, const bool auto_clear_on_enter = false, const bool banned = false);
 		static bool InputDigit(const char *label, int &digit, const bool banned = false);
 
@@ -354,16 +354,16 @@ namespace Aya {
 		static bool CollapsingHeader(const char *label, bool &show);
 
 		template<typename T>
-		static bool Slider(const char *label, T &val, T min, T max, int width = slider_default_width, const bool banned = false) {
-			int id(states->current_id++);
+		static bool Slider(const char *label, T &val, T min, T max, int width = c_sliderDefaultWidth, const bool banned = false) {
+			int id(states->currentId++);
 			bool modified = false;
 
 			if (label) Text(label);
 
-			if (width > states->widget_end_x - states->current_pos_x)
-				width = states->widget_end_x - states->current_pos_x;
-			const int slider_base = states->current_pos_x + slider_btn_default_width;
-			const int slider_end = states->current_pos_x + width - slider_btn_default_width;
+			if (width > states->widgetEndX - states->currentPosX)
+				width = states->widgetEndX - states->currentPosX;
+			const int slider_base = states->currentPosX + c_sliderButtonDefaultWidth;
+			const int slider_end = states->currentPosX + width - c_sliderButtonDefaultWidth;
 
 			
 			auto fix01 = [](float val, float min, float max) {
@@ -382,36 +382,36 @@ namespace Aya {
 			float lin = fix01(float(val), float(min), float(max));
 			int button_x = int(slider_base + (slider_end - slider_base) * lin);
 
-			int bar_left = states->current_pos_x;
-			int bar_top = states->current_pos_y;
+			int bar_left = states->currentPosX;
+			int bar_top = states->currentPosY;
 			int bar_right = bar_left + width;
-			int bar_bottom = bar_top + slider_default_height;
+			int bar_bottom = bar_top + c_sliderDefaultHeight;
 
 			if (!banned) {
-				if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+				if (PtInRect(states->mouseState.x, states->mouseState.y,
 					bar_left, bar_top, bar_right, bar_bottom)) {
-					if (states->mouse_state.action == MouseAction::LButtonDown)
-						states->active_id = id;
+					if (states->mouseState.action == MouseAction::LButtonDown)
+						states->activeId = id;
 
-					if (states->mouse_state.action == MouseAction::LButtonUp) {
-						if (states->active_id == id) {
-							button_x = fix(states->mouse_state.x, slider_base, slider_end);
+					if (states->mouseState.action == MouseAction::LButtonUp) {
+						if (states->activeId == id) {
+							button_x = fix(states->mouseState.x, slider_base, slider_end);
 							float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
 							val = T(min + (max - min) * btn_lin);
 							float lin = fix01(float(val), float(min), float(max));
 							button_x = int(slider_base + (slider_end - slider_base) * lin);
 
 							modified = true;
-							states->active_id = -1;
+							states->activeId = -1;
 						}
 					}
 
-					states->hovered_id = id;
+					states->hoveredId = id;
 				}
 
-				if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
-					if (states->active_id == id) {
-						button_x = fix(states->mouse_state.x, slider_base, slider_end);
+				if (states->mouseState.action == MouseAction::Move && states->mouseState.l_down) {
+					if (states->activeId == id) {
+						button_x = fix(states->mouseState.x, slider_base, slider_end);
 						float btn_lin = fix01(float(button_x), float(slider_base), float(slider_end));
 						val = T(min + (max - min) * btn_lin);
 						float lin = fix01(float(val), float(min), float(max));
@@ -422,23 +422,23 @@ namespace Aya {
 				}
 			}
 			else {
-				if (states->active_id == id)
-					states->active_id = -1;
+				if (states->activeId == id)
+					states->activeId = -1;
 			}
 
-			if (states->mouse_state.action == MouseAction::LButtonUp)
-				if (states->active_id == id)
-					states->active_id = -1;
+			if (states->mouseState.action == MouseAction::LButtonUp)
+				if (states->activeId == id)
+					states->activeId = -1;
 
-			Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) : states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+			Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
 				Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
-			Color4f color2 = banned ? Color4f(0.15f, 0.15f, 0.15f, 0.3f) : states->hovered_id == id && states->active_id == -1 || states->hovered_id == id ?
+			Color4f color2 = banned ? Color4f(0.15f, 0.15f, 0.15f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
 				Color4f(0.3f, 0.3f, 0.3f, 0.65f) : Color4f(0.15f, 0.15f, 0.15f, 0.5f);
 
 			GuiRenderer::instance()->drawRect(bar_left - 1, bar_top - 1, bar_right + 1, bar_bottom + 1, 
 				GuiRenderer::DEPTH_MID, false, banned ? Color4f(1.0f, 1.0f, 1.0f, 0.65f)  : Color4f(1.0f, 1.0f, 1.0f, 1.0f));
 			GuiRenderer::instance()->drawRect(bar_left, bar_top, bar_right, bar_bottom, GuiRenderer::DEPTH_MID, true, color2, Color4f(1.0f, 1.0f, 1.0f, 0.6f));
-			GuiRenderer::instance()->drawRect(button_x - slider_btn_default_width, bar_top, button_x + slider_btn_default_width, bar_bottom, 
+			GuiRenderer::instance()->drawRect(button_x - c_sliderButtonDefaultWidth, bar_top, button_x + c_sliderButtonDefaultWidth, bar_bottom, 
 				GuiRenderer::DEPTH_MID, true, color1);
 
 			{
@@ -456,15 +456,15 @@ namespace Aya {
 					glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 				else
 					glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
-				GuiRenderer::instance()->drawString(bar_left + width / 2 - text_extent.cx / 2, bar_top + slider_btn_default_width - 4, GuiRenderer::DEPTH_MID, str);
+				GuiRenderer::instance()->drawString(bar_left + width / 2 - text_extent.cx / 2, bar_top + c_sliderButtonDefaultWidth - 4, GuiRenderer::DEPTH_MID, str);
 			}
 
-			if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-				states->current_pos_y += check_box_size + default_margin_bottom;
-				states->current_pos_x = padding_left;
+			if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+				states->currentPosY += c_checkBoxSize + c_defaultMarginBottom;
+				states->currentPosX = c_paddingLeft;
 			}
 			else {
-				states->current_pos_x += width + default_margin_right;
+				states->currentPosX += width + c_defaultMarginRight;
 			}
 			
 			return 0;

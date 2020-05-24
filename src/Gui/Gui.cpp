@@ -157,13 +157,13 @@ namespace Aya {
 	const GLfloat GuiRenderer::DEPTH_MID  = 0.6f;
 	const GLfloat GuiRenderer::DEPTH_NEAR = 0.4f;
 
-	const GLchar* GuiRenderer::vert_shader_source = R"(
+	const GLchar* GuiRenderer::s_vertShaderSource = R"(
 		    varying vec2 texCoord;
 			void main() {
 				gl_Position = gl_Vertex;
 				texCoord = gl_MultiTexCoord0.xy;
 			})";
-	const GLchar* GuiRenderer::blur_frag_shader_source = R"(
+	const GLchar* GuiRenderer::s_blurFragShaderSource = R"(
 			uniform sampler2D texSampler;
 			uniform float weights[13];
 			uniform vec2 offsets[13];
@@ -177,11 +177,11 @@ namespace Aya {
 			})";
 
 	GuiRenderer::GuiRenderer() {
-		m_handle_program = glCreateProgram();
+		m_handleProgram = glCreateProgram();
 
 		// Background Tex
-		glGenTextures(1, &m_handle_bg_tex);
-		glBindTexture(GL_TEXTURE_2D, m_handle_bg_tex);
+		glGenTextures(1, &m_handleBackgroundTex);
+		glBindTexture(GL_TEXTURE_2D, m_handleBackgroundTex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
@@ -189,10 +189,10 @@ namespace Aya {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
 
-		glGenFramebuffers(1, &m_handle_FBO);
-		glGenRenderbuffers(1, &m_handle_color_RBO);
+		glGenFramebuffers(1, &m_handleFBO);
+		glGenRenderbuffers(1, &m_handleColorRBO);
 
-		m_text_list_base = glGenLists(128);
+		m_textListBase = glGenLists(128);
 		HFONT font = CreateFont(16,
 			0,
 			0,
@@ -209,7 +209,7 @@ namespace Aya {
 			"Helvetica");
 		m_HDC = wglGetCurrentDC();
 		HFONT old_font = (HFONT)SelectObject(m_HDC, font);
-		wglUseFontBitmaps(m_HDC, 0, 128, m_text_list_base);
+		wglUseFontBitmaps(m_HDC, 0, 128, m_textListBase);
 		//SelectObject(m_HDC, old_font);
 		DeleteObject(font);
 
@@ -228,10 +228,10 @@ namespace Aya {
 			return handle;
 		};
 
-		GLint handle_vertex_shader = LoadShader(GL_VERTEX_SHADER, vert_shader_source);
-		GLint handle_blur_frag_shader = LoadShader(GL_FRAGMENT_SHADER, blur_frag_shader_source);
-		glAttachShader(m_handle_program, handle_vertex_shader);
-		glAttachShader(m_handle_program, handle_blur_frag_shader);
+		GLint handle_vertex_shader = LoadShader(GL_VERTEX_SHADER, s_vertShaderSource);
+		GLint handle_blur_frag_shader = LoadShader(GL_FRAGMENT_SHADER, s_blurFragShaderSource);
+		glAttachShader(m_handleProgram, handle_vertex_shader);
+		glAttachShader(m_handleProgram, handle_blur_frag_shader);
 
 		
 		auto ExcuteAndCheck = [](std::function<void(GLint)> glFunc, GLint handle) {
@@ -250,26 +250,26 @@ namespace Aya {
 			delete[] status_buffer;
 		};
 		
-		ExcuteAndCheck(glLinkProgram, m_handle_program);
-		ExcuteAndCheck(glValidateProgram, m_handle_program);
+		ExcuteAndCheck(glLinkProgram, m_handleProgram);
+		ExcuteAndCheck(glValidateProgram, m_handleProgram);
 
 		// Calculate circle coordinates
 		const GLfloat phi_itvl = 6.2831853071796f / (CIRCLE_VERTEX_COUNT - 1);
 		GLfloat phi = 0.0f;
 		for (size_t i = 0; i < CIRCLE_VERTEX_COUNT - 1; ++i) {
-			m_circle_coords[i * 2 + 0] = std::sinf(phi);
-			m_circle_coords[i * 2 + 1] = -std::cosf(phi);
+			m_circleCoords[i * 2 + 0] = std::sinf(phi);
+			m_circleCoords[i * 2 + 1] = -std::cosf(phi);
 			phi += phi_itvl;
 		}
-		m_circle_coords[2 * CIRCLE_VERTEX_COUNT - 2] = m_circle_coords[0];
-		m_circle_coords[2 * CIRCLE_VERTEX_COUNT - 1] = m_circle_coords[1];
+		m_circleCoords[2 * CIRCLE_VERTEX_COUNT - 2] = m_circleCoords[0];
+		m_circleCoords[2 * CIRCLE_VERTEX_COUNT - 1] = m_circleCoords[1];
 	}
 
 	GuiRenderer::~GuiRenderer() {
-		glDeleteProgram(m_handle_program);
-		glDeleteTextures(1, &m_handle_bg_tex);
-		glDeleteFramebuffers(1, &m_handle_FBO);
-		glDeleteRenderbuffers(1, &m_handle_color_RBO);
+		glDeleteProgram(m_handleProgram);
+		glDeleteTextures(1, &m_handleBackgroundTex);
+		glDeleteFramebuffers(1, &m_handleFBO);
+		glDeleteRenderbuffers(1, &m_handleColorRBO);
 	}
 
 	void GuiRenderer::resize(int width, int height) {
@@ -277,19 +277,19 @@ namespace Aya {
 		m_height = height;
 
 		// Init background texture
-		glBindRenderbuffer(GL_RENDERBUFFER, m_handle_color_RBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_handleColorRBO);
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, 0, GL_RGBA, (width + 0x7) >> 2, (height + 0x7) >> 2);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_handle_FBO);
-		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_handle_color_RBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_handleFBO);
+		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_handleColorRBO);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		CalcGaussianBlurWeightsAndOffsets();
 	}
 
 	void GuiRenderer::blurBackgroundTexture(int x0, int y0, int x1, int y1) {
-		glBindTexture(GL_TEXTURE_2D, m_handle_bg_tex);
+		glBindTexture(GL_TEXTURE_2D, m_handleBackgroundTex);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_width, m_height, 0);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -302,17 +302,17 @@ namespace Aya {
 		GLfloat rx1 = u1 * 2.f - 1.f;
 		GLfloat ry1 = v1 * 2.f - 1.f;
 
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_handle_FBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_handleFBO);
 
 		glViewport(0, 0, (m_width + 0x7) >> 2, (m_height + 0x7) >> 2);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(m_handle_program);
-		glUniform1i(glGetUniformLocation(m_handle_program, "texSampler"), 0);
-		glUniform1fv(glGetUniformLocation(m_handle_program, "weights"), 13, m_gaussian_weights);
-		glUniform2fv(glGetUniformLocation(m_handle_program, "offsets"), 13, m_gaussian_offsets);
+		glUseProgram(m_handleProgram);
+		glUniform1i(glGetUniformLocation(m_handleProgram, "texSampler"), 0);
+		glUniform1fv(glGetUniformLocation(m_handleProgram, "weights"), 13, m_gaussianWeights);
+		glUniform2fv(glGetUniformLocation(m_handleProgram, "offsets"), 13, m_gaussianOffsets);
 
-		glBindTexture(GL_TEXTURE_2D, m_handle_bg_tex);
+		glBindTexture(GL_TEXTURE_2D, m_handleBackgroundTex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glBegin(GL_QUADS);
@@ -339,7 +339,7 @@ namespace Aya {
 	}
 
 	void GuiRenderer::drawBackgroundTexture(int x0, int y0, int x1, int y1) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_handle_FBO);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_handleFBO);
 		glBlitFramebuffer((x0 + 0x7) >> 2, (y0 - 0x7) >> 2, (x1 - 0x7) >> 2, (y1 + 0x7) >> 2, x0, y0, x1, y1, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
@@ -403,29 +403,29 @@ namespace Aya {
 		glVertex3f((GLfloat)x0 + radius, (GLfloat)y0, depth);
 		glVertex3f((GLfloat)x1 - radius, (GLfloat)y0, depth);
 		for (size_t i = 0; i < quater_vertex_count; i++) {
-			GLfloat x = x1 - radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x1 - radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 		glVertex3f((GLfloat)x1, (GLfloat)y0 + radius, depth);
 		glVertex3f((GLfloat)x1, (GLfloat)y1 - radius, depth);
 		for (size_t i = quater_vertex_count; i < 2 * quater_vertex_count; i++) {
-			GLfloat x = x1 - radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y1 - radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x1 - radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y1 - radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 		glVertex3f((GLfloat)x1 - radius, (GLfloat)y1, depth);
 		glVertex3f((GLfloat)x0 + radius, (GLfloat)y1, depth);
 		for (size_t i = 2 * quater_vertex_count; i < 3 * quater_vertex_count; i++) {
-			GLfloat x = x0 + radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y1 - radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x0 + radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y1 - radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 		glVertex3f((GLfloat)x0, (GLfloat)y1 - radius, depth);
 		glVertex3f((GLfloat)x0, (GLfloat)y0 + radius, depth);
 		for (size_t i = 3 * quater_vertex_count; i < 4 * quater_vertex_count; i++) {
-			GLfloat x = x0 + radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x0 + radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 
@@ -456,8 +456,8 @@ namespace Aya {
 		glVertex3f((GLfloat)x0 + radius, (GLfloat)y0, depth);
 		glVertex3f((GLfloat)x1 - radius, (GLfloat)y0, depth);
 		for (size_t i = 0; i < quater_vertex_count; i++) {
-			GLfloat x = x1 - radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x1 - radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 		glVertex3f((GLfloat)x1, (GLfloat)y0 + radius, depth);
@@ -473,8 +473,8 @@ namespace Aya {
 		glVertex3f((GLfloat)x0, (GLfloat)y1 - radius, depth);
 		glVertex3f((GLfloat)x0, (GLfloat)y0 + radius, depth);
 		for (size_t i = 3 * quater_vertex_count; i < 4 * quater_vertex_count; i++) {
-			GLfloat x = x0 + radius + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y0 + radius + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x0 + radius + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y0 + radius + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 
@@ -498,8 +498,8 @@ namespace Aya {
 		}
 
 		for (size_t i = 0; i < CIRCLE_VERTEX_COUNT; i++) {
-			GLfloat x = x0 + m_circle_coords[i * 2 + 0] * radius;
-			GLfloat y = y0 + m_circle_coords[i * 2 + 1] * radius;
+			GLfloat x = x0 + m_circleCoords[i * 2 + 0] * radius;
+			GLfloat y = y0 + m_circleCoords[i * 2 + 1] * radius;
 			glVertex3f(x, y, depth);
 		}
 
@@ -508,7 +508,7 @@ namespace Aya {
 
 
 	void GuiRenderer::drawString(int x0, int y0, float depth, const char *text, int length) const {
-		glListBase(m_text_list_base);
+		glListBase(m_textListBase);
 
 		glRasterPos3f((GLfloat)x0, (GLfloat)y0 + 10.f, depth);
 		if (~length) {
@@ -540,17 +540,17 @@ namespace Aya {
 					continue;
 
 				// Get the unscaled Gaussian intensity for this offset
-				m_gaussian_offsets[index * 2 + 0] = x * tu;
-				m_gaussian_offsets[index * 2 + 1] = y * tv;
-				m_gaussian_weights[index] = GaussianDistribution(GLfloat(x), GLfloat(y), 1.f);
-				total_weight += m_gaussian_weights[index];
+				m_gaussianOffsets[index * 2 + 0] = x * tu;
+				m_gaussianOffsets[index * 2 + 1] = y * tv;
+				m_gaussianWeights[index] = GaussianDistribution(GLfloat(x), GLfloat(y), 1.f);
+				total_weight += m_gaussianWeights[index];
 
 				++index;
 			}
 		}
 
 		for (size_t i = 0; i < index; i++)
-			m_gaussian_weights[i] /= total_weight;
+			m_gaussianWeights[i] /= total_weight;
 	}
 
 	// Immediate Mode GUI Implementation
@@ -559,16 +559,16 @@ namespace Aya {
 	void AyaGui::Init() {
 		states = new GuiStates;
 		
-		states->active_id = -1;
-		states->moving_id = -1;
-		states->active_dialog_id = -1;
+		states->activeId = -1;
+		states->movingId = -1;
+		states->activeDialogId = -1;
 		
-		states->key_state.key = 0;
-		states->key_state.funckey = FunctionKey::None;
-		states->key_state.keymode = KeyMode::None;
+		states->keyState.key = 0;
+		states->keyState.funckey = FunctionKey::None;
+		states->keyState.keymode = KeyMode::None;
 
-		states->editing_id = -1;
-		states->scroller_init_y = 0;
+		states->editingId = -1;
+		states->scrollerInitY = 0;
 	}
 
 	void AyaGui::Release() {
@@ -579,116 +579,116 @@ namespace Aya {
 	}
 
 	void AyaGui::Resize(int width, int height) {
-		states->screen_width = width;
-		states->screen_height = height;
+		states->screenWidth = width;
+		states->screenHeight = height;
 
 		GuiRenderer::instance()->resize(width, height);
 	}
 
 	void AyaGui::Vertical() {
-		states->current_growth_strategy = GrowthStrategy::Vertical;
+		states->currentGrowthStrategy = GrowthStrategy::Vertical;
 	}
 	void AyaGui::Horizontal() {
-		states->current_growth_strategy = GrowthStrategy::Horizontal;
+		states->currentGrowthStrategy = GrowthStrategy::Horizontal;
 	}
 
 	void AyaGui::ExpandVertical(int margin) {
-		states->current_pos_y += margin;
+		states->currentPosY += margin;
 	}
 	void AyaGui::ExpandHorizontal(int margin) {
-		states->current_pos_x += margin;
+		states->currentPosX += margin;
 	}
 	void AyaGui::NextLine(int margin, int padding) {
-		states->current_pos_y += margin;
-		states->current_pos_x = padding;
+		states->currentPosY += margin;
+		states->currentPosX = padding;
 	}
 	void AyaGui::Target(int x, int y) {
-		states->current_pos_x = x;
-		states->current_pos_y = y;
+		states->currentPosX = x;
+		states->currentPosY = y;
 	}
 
 	void AyaGui::BeginFrame() {
-		states->current_id = 0;
-		states->current_dialog_id = 0;
-		states->hovered_id = -1;
+		states->currentId = 0;
+		states->currentDialogId = 0;
+		states->hoveredId = -1;
 	}
 
 	void AyaGui::EndFrame() {
-		states->global_mouse_state.action = MouseAction::None;
+		states->globalMouseState.action = MouseAction::None;
 		
-		states->key_state.key = 0;
-		states->key_state.funckey = FunctionKey::None;
-		states->key_state.keymode = KeyMode::None;
+		states->keyState.key = 0;
+		states->keyState.funckey = FunctionKey::None;
+		states->keyState.keymode = KeyMode::None;
 	}
 
 	void AyaGui::BeginDialog(LayoutStrategy layout, int &x, int &y, const char *title, 
 		const int width, const int height,
 		GrowthStrategy growth_strategy) {
-		auto dialog_id(states->current_dialog_id++);
+		auto dialog_id(states->currentDialogId++);
 
 		assert(layout == LayoutStrategy::Fixed || layout == LayoutStrategy::Floating);
-		states->current_layout_strategy = layout;
-		states->current_growth_strategy = growth_strategy;
+		states->currentLayoutStrategy = layout;
+		states->currentGrowthStrategy = growth_strategy;
 
-		states->dialog_width = width;
-		states->dialog_height = height;
-		states->dialog_pos_x = x;
-		states->dialog_pos_y = y;
-		states->current_pos_x = padding_left;
+		states->dialogWidth = width;
+		states->dialogHeight = height;
+		states->dialogPosX = x;
+		states->dialogPosY = y;
+		states->currentPosX = c_paddingLeft;
 		if (layout == LayoutStrategy::Floating || title)
-			states->current_pos_y = titled_dialog_padding_top;
+			states->currentPosY = c_titledDialogPaddingTop;
 		else
-			states->current_pos_y = untitled_dialog_padding_top;
-		states->widget_end_x = states->dialog_width - padding_left;
+			states->currentPosY = c_untitledDialogPaddingTop;
+		states->widgetEndX = states->dialogWidth - c_paddingLeft;
 
-		states->mouse_state = states->global_mouse_state;
-		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
-		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+		states->mouseState = states->globalMouseState;
+		states->mouseState.x = states->globalMouseState.x - states->dialogPosX;
+		states->mouseState.y = states->globalMouseState.y - states->dialogPosY;
 
-		int mouse_x = states->mouse_state.x;
-		int mouse_y = states->mouse_state.y;
+		int mouse_x = states->mouseState.x;
+		int mouse_y = states->mouseState.y;
 		// When dialog is moving, logical frame is prev frame
-		if (states->moving_id == dialog_id && layout == LayoutStrategy::Floating) {
-			mouse_x -= states->global_mouse_state.x - states->prev_global_mouse_state.x;
-			mouse_y -= states->global_mouse_state.y - states->prev_global_mouse_state.y;
+		if (states->movingId == dialog_id && layout == LayoutStrategy::Floating) {
+			mouse_x -= states->globalMouseState.x - states->prevGlobalMouseState.x;
+			mouse_y -= states->globalMouseState.y - states->prevGlobalMouseState.y;
 		}
 
-		if (PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, states->dialog_height)) {
-			if (states->mouse_state.action == MouseAction::LButtonDown) {
-				states->active_dialog_id = dialog_id;
+		if (PtInRect(mouse_x, mouse_y, 0, 0, states->dialogWidth, states->dialogHeight)) {
+			if (states->mouseState.action == MouseAction::LButtonDown) {
+				states->activeDialogId = dialog_id;
 				if (layout == LayoutStrategy::Floating && 
-					PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, dialog_title_height)) {
-					states->moving_id = dialog_id;
+					PtInRect(mouse_x, mouse_y, 0, 0, states->dialogWidth, c_dialogTitleHeight)) {
+					states->movingId = dialog_id;
 				}
 			}
 		}
-		if (states->mouse_state.action == MouseAction::LButtonUp) {
-			if (states->active_dialog_id == dialog_id)
-				states->active_dialog_id = -1;
+		if (states->mouseState.action == MouseAction::LButtonUp) {
+			if (states->activeDialogId == dialog_id)
+				states->activeDialogId = -1;
 			if (layout == LayoutStrategy::Floating &&
-				states->moving_id == dialog_id)
-				states->moving_id = -1;
+				states->movingId == dialog_id)
+				states->movingId = -1;
 		}
 
 		if (layout == LayoutStrategy::Floating &&
-			states->moving_id == dialog_id) {
-			if (states->active_dialog_id == dialog_id && 
-				PtInRect(mouse_x, mouse_y, 0, 0, states->dialog_width, dialog_title_height)) {
-				x += states->global_mouse_state.x - states->prev_global_mouse_state.x;
-				y += states->global_mouse_state.y - states->prev_global_mouse_state.y;
-				states->dialog_pos_x = x;
-				states->dialog_pos_y = y;
-				states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
-				states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+			states->movingId == dialog_id) {
+			if (states->activeDialogId == dialog_id && 
+				PtInRect(mouse_x, mouse_y, 0, 0, states->dialogWidth, c_dialogTitleHeight)) {
+				x += states->globalMouseState.x - states->prevGlobalMouseState.x;
+				y += states->globalMouseState.y - states->prevGlobalMouseState.y;
+				states->dialogPosX = x;
+				states->dialogPosY = y;
+				states->mouseState.x = states->globalMouseState.x - states->dialogPosX;
+				states->mouseState.y = states->globalMouseState.y - states->dialogPosY;
 				
-				states->prev_global_mouse_state = states->global_mouse_state;
+				states->prevGlobalMouseState = states->globalMouseState;
 			}
 			else
-				states->moving_id = -1;
+				states->movingId = -1;
 		}
 		if (layout == LayoutStrategy::Fixed &&
-			states->moving_id == dialog_id) {
-			states->moving_id = -1;
+			states->movingId == dialog_id) {
+			states->movingId = -1;
 		}
 
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -696,7 +696,7 @@ namespace Aya {
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
-		glOrtho(0, states->screen_width, 0, states->screen_height, 1, -1);
+		glOrtho(0, states->screenWidth, 0, states->screenHeight, 1, -1);
 
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
@@ -707,20 +707,20 @@ namespace Aya {
 		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_DEPTH_TEST);
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
 
-		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
+		glTranslatef((GLfloat)states->dialogPosX, (GLfloat)states->screenHeight - states->dialogPosY, 0.0f);
 		glScalef(1.0f, -1.0f, 1.0f);
 
 		glLineWidth(1.0f);
@@ -731,8 +731,8 @@ namespace Aya {
 
 		GuiRenderer::instance()->drawRoundedRect(0,
 			0,
-			states->dialog_width,
-			states->dialog_height,
+			states->dialogWidth,
+			states->dialogHeight,
 			GuiRenderer::DEPTH_FAR,
 			12.0f,
 			true,
@@ -742,8 +742,8 @@ namespace Aya {
 		if (layout == LayoutStrategy::Floating) {
 			GuiRenderer::instance()->drawHalfRoundedRect(0,
 				0,
-				states->dialog_width,
-				dialog_title_height,
+				states->dialogWidth,
+				c_dialogTitleHeight,
 				GuiRenderer::DEPTH_FAR,
 				12.0f,
 				true,
@@ -762,48 +762,48 @@ namespace Aya {
 	void AyaGui::BeginSidebarDialog(LayoutStrategy layout,
 		const int width, const int height,
 		GrowthStrategy growth_strategy) {
-		auto dialog_id(states->current_dialog_id++);
+		auto dialog_id(states->currentDialogId++);
 
 		assert(layout == LayoutStrategy::DockLeft || layout == LayoutStrategy::DockRight);
-		states->current_layout_strategy = layout;
-		states->current_growth_strategy = growth_strategy;
+		states->currentLayoutStrategy = layout;
+		states->currentGrowthStrategy = growth_strategy;
 
 		switch (layout) {
 		case LayoutStrategy::DockRight:
-			states->dialog_width = sidebar_width;
-			states->dialog_height = states->screen_height;
-			states->dialog_pos_x = states->screen_width - states->dialog_width;
-			states->dialog_pos_y = 0;
-			states->current_pos_x = padding_left;
-			states->current_pos_y = sidebar_padding_top;
-			states->widget_end_x = states->dialog_width - padding_left;
+			states->dialogWidth = c_sidebarWidth;
+			states->dialogHeight = states->screenHeight;
+			states->dialogPosX = states->screenWidth - states->dialogWidth;
+			states->dialogPosY = 0;
+			states->currentPosX = c_paddingLeft;
+			states->currentPosY = c_sidebarPaddingTop;
+			states->widgetEndX = states->dialogWidth - c_paddingLeft;
 			break;
 
 		case LayoutStrategy::DockLeft:
-			states->dialog_width = sidebar_width;
-			states->dialog_height = states->screen_height;
-			states->dialog_pos_x = 0;
-			states->dialog_pos_y = 0;
-			states->current_pos_x = padding_left;
-			states->current_pos_y = sidebar_padding_top;
-			states->widget_end_x = states->dialog_width - padding_left;
+			states->dialogWidth = c_sidebarWidth;
+			states->dialogHeight = states->screenHeight;
+			states->dialogPosX = 0;
+			states->dialogPosY = 0;
+			states->currentPosX = c_paddingLeft;
+			states->currentPosY = c_sidebarPaddingTop;
+			states->widgetEndX = states->dialogWidth - c_paddingLeft;
 			break;
 		}
 
-		states->mouse_state = states->global_mouse_state;
-		states->mouse_state.x = states->global_mouse_state.x - states->dialog_pos_x;
-		states->mouse_state.y = states->global_mouse_state.y - states->dialog_pos_y;
+		states->mouseState = states->globalMouseState;
+		states->mouseState.x = states->globalMouseState.x - states->dialogPosX;
+		states->mouseState.y = states->globalMouseState.y - states->dialogPosY;
 
-		if (states->mouse_state.x >= 0 &&
-			states->mouse_state.x < states->dialog_width &&
-			states->mouse_state.y > 0 &&
-			states->mouse_state.y <= states->dialog_height) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
-				states->active_dialog_id = dialog_id;
+		if (states->mouseState.x >= 0 &&
+			states->mouseState.x < states->dialogWidth &&
+			states->mouseState.y > 0 &&
+			states->mouseState.y <= states->dialogHeight) {
+			if (states->mouseState.action == MouseAction::LButtonDown)
+				states->activeDialogId = dialog_id;
 		}
-		if (states->mouse_state.action == MouseAction::LButtonUp) {
-			if (states->active_dialog_id == dialog_id)
-				states->active_dialog_id = -1;
+		if (states->mouseState.action == MouseAction::LButtonUp) {
+			if (states->activeDialogId == dialog_id)
+				states->activeDialogId = -1;
 		}
 
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -811,7 +811,7 @@ namespace Aya {
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
-		glOrtho(0, states->screen_width, 0, states->screen_height, 1, -1);
+		glOrtho(0, states->screenWidth, 0, states->screenHeight, 1, -1);
 
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
@@ -822,20 +822,20 @@ namespace Aya {
 		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_DEPTH_TEST);
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->blurBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
-		GuiRenderer::instance()->drawBackgroundTexture(states->dialog_pos_x, states->screen_height - states->dialog_pos_y,
-			states->dialog_pos_x + states->dialog_width, states->screen_height - (states->dialog_pos_y + states->dialog_height));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->blurBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
+		GuiRenderer::instance()->drawBackgroundTexture(states->dialogPosX, states->screenHeight - states->dialogPosY,
+			states->dialogPosX + states->dialogWidth, states->screenHeight - (states->dialogPosY + states->dialogHeight));
 
-		glTranslatef((GLfloat)states->dialog_pos_x, (GLfloat)states->screen_height - states->dialog_pos_y, 0.0f);
+		glTranslatef((GLfloat)states->dialogPosX, (GLfloat)states->screenHeight - states->dialogPosY, 0.0f);
 		glScalef(1.0f, -1.0f, 1.0f);
 
 		glLineWidth(1.0f);
@@ -851,9 +851,9 @@ namespace Aya {
 		glBegin(GL_QUADS);
 
 		glVertex3f(0.0f, 0.0f, GuiRenderer::DEPTH_FAR);
-		glVertex3f((GLfloat)states->dialog_width, 0.0f, GuiRenderer::DEPTH_FAR);
-		glVertex3f((GLfloat)states->dialog_width, (GLfloat)states->dialog_height, GuiRenderer::DEPTH_FAR);
-		glVertex3f(0.0f, (GLfloat)states->dialog_height, GuiRenderer::DEPTH_FAR);
+		glVertex3f((GLfloat)states->dialogWidth, 0.0f, GuiRenderer::DEPTH_FAR);
+		glVertex3f((GLfloat)states->dialogWidth, (GLfloat)states->dialogHeight, GuiRenderer::DEPTH_FAR);
+		glVertex3f(0.0f, (GLfloat)states->dialogHeight, GuiRenderer::DEPTH_FAR);
 
 		glEnd();
 		glEnable(GL_DEPTH_TEST);
@@ -867,21 +867,21 @@ namespace Aya {
 	}
 
 	bool AyaGui::HandleMouseEvent(const MouseEvent &mouse) {
-		if (states->moving_id == -1)
-			states->prev_global_mouse_state = states->global_mouse_state;
-		states->global_mouse_state = mouse;
+		if (states->movingId == -1)
+			states->prevGlobalMouseState = states->globalMouseState;
+		states->globalMouseState = mouse;
 
-		return states->active_dialog_id != -1;
+		return states->activeDialogId != -1;
 	}
 
 	bool AyaGui::HandleKeyboardEvent(const KeyboardEvent &key) {
-		states->key_state = key;
+		states->keyState = key;
 
-		return states->active_dialog_id != -1;
+		return states->activeDialogId != -1;
 	}
 
 	void AyaGui::Text(const char *str, ...) {
-		states->current_id++;
+		states->currentId++;
 
 		va_list args;
 		va_start(args, str);
@@ -892,11 +892,11 @@ namespace Aya {
 		va_end(args);
 
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y + 3, GuiRenderer::DEPTH_MID, buff);
+		GuiRenderer::instance()->drawString(states->currentPosX, states->currentPosY + 3, GuiRenderer::DEPTH_MID, buff);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += text_height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_textHeight + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
 			int line_length = 0;
@@ -906,12 +906,12 @@ namespace Aya {
 				line_length += text_extent.cx;
 			}
 			
-			states->current_pos_x += line_length + default_margin_right;
+			states->currentPosX += line_length + c_defaultMarginRight;
 		}
 	}
 
 	void AyaGui::Text(Color4f color, const char *str, ...) {
-		states->current_id++;
+		states->currentId++;
 
 		va_list args;
 		va_start(args, str);
@@ -922,11 +922,11 @@ namespace Aya {
 		va_end(args);
 
 		glColor4f(color.r, color.g, color.b, color.a);
-		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y + 3, GuiRenderer::DEPTH_MID, buff);
+		GuiRenderer::instance()->drawString(states->currentPosX, states->currentPosY + 3, GuiRenderer::DEPTH_MID, buff);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += text_height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_textHeight + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
 			int line_length = 0;
@@ -936,12 +936,12 @@ namespace Aya {
 				line_length += text_extent.cx;
 			}
 
-			states->current_pos_x += line_length + default_margin_right;
+			states->currentPosX += line_length + c_defaultMarginRight;
 		}
 	}
 
 	void AyaGui::MultilineText(const char *str, ...) {
-		states->current_id++;
+		states->currentId++;
 
 		va_list args;
 		va_start(args, str);
@@ -971,7 +971,7 @@ namespace Aya {
 				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &buff[i], 1, &text_extent);
 				line_length += text_extent.cx;
 
-				if (line_length >= states->widget_end_x - states->current_pos_x) {
+				if (line_length >= states->widgetEndX - states->currentPosX) {
 					reformatted_str += '\0';
 					line_length = 0;
 					line_idx.push_back(reformatted_str.length());
@@ -982,51 +982,51 @@ namespace Aya {
 		// Render Text
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 		for (size_t i = 0; i < line_idx.size(); i++) {
-			GuiRenderer::instance()->drawString(states->current_pos_x,
-				states->current_pos_y + i * multiline_text_height,
+			GuiRenderer::instance()->drawString(states->currentPosX,
+				states->currentPosY + i * c_multilineTextHeight,
 				GuiRenderer::DEPTH_MID,
 				reformatted_str.c_str() + line_idx[i]);
 		}
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += line_idx.size() * multiline_text_height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += line_idx.size() * c_multilineTextHeight + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else
-			states->current_pos_x += default_margin_right;
+			states->currentPosX += c_defaultMarginRight;
 	}
 
 	bool AyaGui::Button(const char *label, const int width, const int height, const bool banned) {
 		bool triggered = false;
-		int id(states->current_id++);
+		int id(states->currentId++);
 
-		int left = states->current_pos_x;
-		int right = states->current_pos_x + width;
-		right = right > states->widget_end_x ? states->widget_end_x : right;
-		int top = states->current_pos_y;
-		int bottom = states->current_pos_y + height;
+		int left = states->currentPosX;
+		int right = states->currentPosX + width;
+		right = right > states->widgetEndX ? states->widgetEndX : right;
+		int top = states->currentPosY;
+		int bottom = states->currentPosY + height;
 
 		if (!banned) {
-			bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom);
+			bool in_rect = PtInRect(states->mouseState.x, states->mouseState.y, left, top, right, bottom);
 
 			if (in_rect) {
-				if (states->mouse_state.action == MouseAction::LButtonDown)
-					states->active_id = id;
+				if (states->mouseState.action == MouseAction::LButtonDown)
+					states->activeId = id;
 
-				states->hovered_id = id;
+				states->hoveredId = id;
 			}
 
-			if (states->mouse_state.action == MouseAction::LButtonUp) {
-				if (states->active_id == id) {
-					states->active_id = -1;
+			if (states->mouseState.action == MouseAction::LButtonUp) {
+				if (states->activeId == id) {
+					states->activeId = -1;
 					if (in_rect)
 						triggered = true;
 				}
 			}
 		}
 		else {
-			if (states->active_id == id)
-				states->active_id = -1;
+			if (states->activeId == id)
+				states->activeId = -1;
 		}
 
 		float btn_radius = 5.0f;
@@ -1035,12 +1035,12 @@ namespace Aya {
 				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.3f));
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 		}
-		else if (states->hovered_id == id && states->active_id == id) {
+		else if (states->hoveredId == id && states->activeId == id) {
 			GuiRenderer::instance()->drawRoundedRect(left + 1, top + 1, right - 1, bottom - 1,
 				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.65f));
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 		}
-		else if (states->hovered_id == id && states->active_id == -1 || states->active_id == id) {
+		else if (states->hoveredId == id && states->activeId == -1 || states->activeId == id) {
 			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
 				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.5f));
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
@@ -1058,12 +1058,12 @@ namespace Aya {
 			(top + bottom - text_extent.cy) / 2 + 4, 
 			GuiRenderer::DEPTH_MID, label);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += height + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
-			states->current_pos_x += right - left + default_margin_right;
+			states->currentPosX += right - left + c_defaultMarginRight;
 		}
 
 		return triggered;
@@ -1072,60 +1072,60 @@ namespace Aya {
 	void AyaGui::Line() {
 		glLineWidth(1.0f);
 		glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
-		if (states->current_growth_strategy == GrowthStrategy::Horizontal) {
-			states->current_growth_strategy = GrowthStrategy::Vertical;
-			states->current_pos_y += default_margin_bottom + line_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Horizontal) {
+			states->currentGrowthStrategy = GrowthStrategy::Vertical;
+			states->currentPosY += c_defaultMarginBottom + c_lineMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 
-		GuiRenderer::instance()->drawLine(5, states->current_pos_y, states->dialog_width - 5, states->current_pos_y, GuiRenderer::DEPTH_MID);
-		states->current_pos_y += line_margin_bottom;
+		GuiRenderer::instance()->drawLine(5, states->currentPosY, states->dialogWidth - 5, states->currentPosY, GuiRenderer::DEPTH_MID);
+		states->currentPosY += c_lineMarginBottom;
 	}
 
 	void AyaGui::ComboBox(const char *label, const std::vector<std::string> items, int &selected, int width, const bool banned) {
 		if (label) Text(label);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical)
-			states->current_pos_y -= default_margin_bottom / 2;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical)
+			states->currentPosY -= c_defaultMarginBottom / 2;
 		else
-			states->current_pos_x -= default_margin_right / 2;
+			states->currentPosX -= c_defaultMarginRight / 2;
 
-		int id(states->current_id++);
-		if (width + states->current_pos_x > states->widget_end_x)
-			width = states->widget_end_x - states->current_pos_x;
-		int frame_left = states->current_pos_x;
-		int frame_top = states->current_pos_y;
-		int frame_right = states->current_pos_x + width;
-		int frmae_bottom = states->current_pos_y + combo_box_height;
+		int id(states->currentId++);
+		if (width + states->currentPosX > states->widgetEndX)
+			width = states->widgetEndX - states->currentPosX;
+		int frame_left = states->currentPosX;
+		int frame_top = states->currentPosY;
+		int frame_right = states->currentPosX + width;
+		int frmae_bottom = states->currentPosY + c_comboBoxHeight;
 
 		static bool list_down_current_frame;
 		list_down_current_frame = false;
 
 		if (!banned) {
-			if (PtInRect(states->mouse_state.x, states->mouse_state.y, frame_left, frame_top, frame_right, frmae_bottom)) {
-				if (states->mouse_state.action == MouseAction::LButtonDown) {
-					if (states->active_id != id)
-						states->active_id = id;
-					else if (states->active_id == id)
-						states->active_id = -1;
+			if (PtInRect(states->mouseState.x, states->mouseState.y, frame_left, frame_top, frame_right, frmae_bottom)) {
+				if (states->mouseState.action == MouseAction::LButtonDown) {
+					if (states->activeId != id)
+						states->activeId = id;
+					else if (states->activeId == id)
+						states->activeId = -1;
 
 					list_down_current_frame = true;
 				}
 
-				states->hovered_id = id;
+				states->hoveredId = id;
 			}
 		}
 		else {
-			if (states->active_id == id)
-				states->active_id = -1;
+			if (states->activeId == id)
+				states->activeId = -1;
 		}
 
-		Color4f button_color = !banned ? (states->active_id == id || states->hovered_id == id && states->active_id == -1 ? 
+		Color4f button_color = !banned ? (states->activeId == id || states->hoveredId == id && states->activeId == -1 ? 
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : 
 			Color4f(1.0f, 1.0f, 1.0f, 0.5f)) : Color4f(1.0f, 1.0f, 1.0f, 0.3f);
 
 		GuiRenderer::instance()->drawRect(frame_left, frame_top, frame_right, frmae_bottom, GuiRenderer::DEPTH_MID, false, button_color);
-		GuiRenderer::instance()->drawRect(frame_right - combo_box_height, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
+		GuiRenderer::instance()->drawRect(frame_right - c_comboBoxHeight, frame_top + 1, frame_right - 1, frmae_bottom - 1, GuiRenderer::DEPTH_MID, true, button_color);
 		
 		glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 		if (!banned)
@@ -1138,26 +1138,26 @@ namespace Aya {
 		else
 			GuiRenderer::instance()->drawString(frame_left + 5, frame_top + 5, GuiRenderer::DEPTH_MID, "...");
 
-		if (states->active_id == id) {
-			int drop_left = states->current_pos_x;
-			int drop_top = states->current_pos_y + combo_box_height;
-			int drop_right = drop_left + width - combo_box_height;
-			int drop_bottom = drop_top + 1 + int(items.size()) * combo_box_item_height;
+		if (states->activeId == id) {
+			int drop_left = states->currentPosX;
+			int drop_top = states->currentPosY + c_comboBoxHeight;
+			int drop_right = drop_left + width - c_comboBoxHeight;
+			int drop_bottom = drop_top + 1 + int(items.size()) * c_comboBoxItemHeight;
 
-			if (states->mouse_state.action == MouseAction::LButtonDown) {
-				if (PtInRect(states->mouse_state.x, states->mouse_state.y, drop_left, drop_top, drop_right, drop_bottom))
-					selected = (states->mouse_state.y - drop_top) / combo_box_item_height;
+			if (states->mouseState.action == MouseAction::LButtonDown) {
+				if (PtInRect(states->mouseState.x, states->mouseState.y, drop_left, drop_top, drop_right, drop_bottom))
+					selected = (states->mouseState.y - drop_top) / c_comboBoxItemHeight;
 
 				if (!list_down_current_frame) {
-					states->active_id = -1;
-					states->hovered_id = id;
-					states->mouse_state.action = MouseAction::None;
+					states->activeId = -1;
+					states->hoveredId = id;
+					states->mouseState.action = MouseAction::None;
 				}
 			}
 
 			GuiRenderer::instance()->drawRect(drop_left, drop_top + 1, drop_right, drop_bottom, GuiRenderer::DEPTH_NEAR, true, Color4f(0.25f, 0.25f, 0.25f, 1.0f));
 
-			int hovered_idx = (states->mouse_state.y - drop_top) / combo_box_item_height;
+			int hovered_idx = (states->mouseState.y - drop_top) / c_comboBoxItemHeight;
 			if (hovered_idx < 0)
 				hovered_idx = 0;
 			if (hovered_idx >= int(items.size()))
@@ -1167,9 +1167,9 @@ namespace Aya {
 				if (i == hovered_idx) {
 					GuiRenderer::instance()->drawRect(
 						drop_left,
-						drop_top + 2 + hovered_idx * combo_box_item_height,
+						drop_top + 2 + hovered_idx * c_comboBoxItemHeight,
 						drop_right - 1,
-						drop_top + 1 + (hovered_idx + 1) * combo_box_item_height,
+						drop_top + 1 + (hovered_idx + 1) * c_comboBoxItemHeight,
 						GuiRenderer::DEPTH_NEAR,
 						true,
 						Color4f(0.4f, 0.4f, 0.4f, 0.5f));
@@ -1182,55 +1182,55 @@ namespace Aya {
 					glColor4f(0.9f, 0.9f, 0.9f, 1.0f);
 				}
 
-				GuiRenderer::instance()->drawString(drop_left + 3, drop_top + 6 + i * combo_box_item_height, GuiRenderer::DEPTH_NEAR, items[i].c_str());
+				GuiRenderer::instance()->drawString(drop_left + 3, drop_top + 6 + i * c_comboBoxItemHeight, GuiRenderer::DEPTH_NEAR, items[i].c_str());
 			}
 		}
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += combo_box_height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_comboBoxHeight + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else
-			states->current_pos_x += width + default_margin_bottom;
+			states->currentPosX += width + c_defaultMarginBottom;
 	}
 
 	bool AyaGui::CheckBox(const char *label, bool &checked, const bool banned) {
 		bool triggered = false;
 
-		int id(states->current_id++);
+		int id(states->currentId++);
 
-		int box_left = states->current_pos_x;
-		int box_top = states->current_pos_y;
-		int box_right = box_left + check_box_size;
-		int box_bottom = box_top + check_box_size;
+		int box_left = states->currentPosX;
+		int box_top = states->currentPosY;
+		int box_right = box_left + c_checkBoxSize;
+		int box_bottom = box_top + c_checkBoxSize;
 
 		if (!banned) {
-			if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
-				if (states->mouse_state.action == MouseAction::LButtonDown)
-					states->active_id = id;
-				if (states->mouse_state.action == MouseAction::LButtonUp) {
-					if (states->active_id == id) {
-						states->active_id = -1;
+			if (PtInRect(states->mouseState.x, states->mouseState.y, box_left, box_top, box_right, box_bottom)) {
+				if (states->mouseState.action == MouseAction::LButtonDown)
+					states->activeId = id;
+				if (states->mouseState.action == MouseAction::LButtonUp) {
+					if (states->activeId == id) {
+						states->activeId = -1;
 						checked = !checked;
 						triggered = true;
 					}
 				}
 
-				states->hovered_id = id;
+				states->hoveredId = id;
 			}
 			else {
-				if (states->mouse_state.action == MouseAction::Move)
-					if (states->active_id == id)
-						states->active_id = -1;
+				if (states->mouseState.action == MouseAction::Move)
+					if (states->activeId == id)
+						states->activeId = -1;
 			}
 		}
 		else {
-			if (states->active_id == id)
-				states->active_id = -1;
+			if (states->activeId == id)
+				states->activeId = -1;
 		}
 
 		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
-			states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+			states->hoveredId == id && states->activeId == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(box_left,
 			box_top,
 			box_right,
@@ -1239,7 +1239,7 @@ namespace Aya {
 			false,
 			color1);
 
-		Color4f color2 = checked ? color1 : states->hovered_id == id && states->active_id == -1 && !banned ? 
+		Color4f color2 = checked ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ? 
 			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(1.0f, 1.0f, 1.0f, 0.1f);
 		GuiRenderer::instance()->drawRect(box_left + 2,
 			box_top + 2,
@@ -1255,14 +1255,14 @@ namespace Aya {
 			glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 		GuiRenderer::instance()->drawString(box_right + 7, box_top + 2, GuiRenderer::DEPTH_MID, label);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += check_box_size + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_checkBoxSize + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
 			SIZE text_extent;
 			GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), label, strlen(label), &text_extent);
-			states->current_pos_x += 7 + check_box_size + text_extent.cx + default_margin_right;
+			states->currentPosX += 7 + c_checkBoxSize + text_extent.cx + c_defaultMarginRight;
 		}
 
 		return triggered;
@@ -1271,53 +1271,53 @@ namespace Aya {
 	bool AyaGui::RadioButton(const char *label, int active, int &current, const bool banned) {
 		bool triggered = false;
 
-		int id(states->current_id++);
+		int id(states->currentId++);
 
-		int box_left = states->current_pos_x;
-		int box_top = states->current_pos_y;
-		int box_right = box_left + radio_button_circle_diameter;
-		int box_bottom = box_top + radio_button_circle_diameter;
+		int box_left = states->currentPosX;
+		int box_top = states->currentPosY;
+		int box_right = box_left + c_radioButtonCircleDiameter;
+		int box_bottom = box_top + c_radioButtonCircleDiameter;
 
 		if (!banned) {
-			if (PtInRect(states->mouse_state.x, states->mouse_state.y, box_left, box_top, box_right, box_bottom)) {
-				if (states->mouse_state.action == MouseAction::LButtonDown)
-					states->active_id = id;
-				if (states->mouse_state.action == MouseAction::LButtonUp) {
-					if (states->active_id == id) {
-						states->active_id = -1;
+			if (PtInRect(states->mouseState.x, states->mouseState.y, box_left, box_top, box_right, box_bottom)) {
+				if (states->mouseState.action == MouseAction::LButtonDown)
+					states->activeId = id;
+				if (states->mouseState.action == MouseAction::LButtonUp) {
+					if (states->activeId == id) {
+						states->activeId = -1;
 						current = active;
 						triggered = true;
 					}
 				}
 
-				states->hovered_id = id;
+				states->hoveredId = id;
 			}
 			else {
-				if (states->mouse_state.action == MouseAction::Move)
-					if (states->active_id == id)
-						states->active_id = -1;
+				if (states->mouseState.action == MouseAction::Move)
+					if (states->activeId == id)
+						states->activeId = -1;
 			}
 		}
 		else {
-			if (states->active_id == id)
-				states->active_id = -1;
+			if (states->activeId == id)
+				states->activeId = -1;
 		}
 
 		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
-			states->hovered_id == id && states->active_id == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+			states->hoveredId == id && states->activeId == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
 			GuiRenderer::DEPTH_MID,
-			radio_button_circle_diameter / 2,
+			c_radioButtonCircleDiameter / 2,
 			false,
 			color1);
 
-		Color4f color2 = (current == active) ? color1 : states->hovered_id == id && states->active_id == -1 && !banned ? 
+		Color4f color2 = (current == active) ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ? 
 			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(0.0f, 0.0f, 0.0f, 0.0f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
 			GuiRenderer::DEPTH_MID,
-			radio_button_circle_diameter / 2 - 2,
+			c_radioButtonCircleDiameter / 2 - 2,
 			true,
 			color2);
 
@@ -1327,22 +1327,22 @@ namespace Aya {
 			glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
 		GuiRenderer::instance()->drawString(box_right + 7, box_top + 2, GuiRenderer::DEPTH_MID, label);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += check_box_size + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_checkBoxSize + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
 			SIZE text_extent;
 			GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), label, strlen(label), &text_extent);
-			states->current_pos_x += 7 + check_box_size + text_extent.cx + default_margin_right;
+			states->currentPosX += 7 + c_checkBoxSize + text_extent.cx + c_defaultMarginRight;
 		}
 
 		return triggered;
 	}
 
 	void AyaGui::ColorBlock(float r, float g, float b, int size) {
-		int block_left = states->current_pos_x;
-		int block_top = states->current_pos_y;
+		int block_left = states->currentPosX;
+		int block_top = states->currentPosY;
 		int block_right = block_left + size;
 		int block_bottom = block_top + size;
 
@@ -1359,216 +1359,216 @@ namespace Aya {
 			return std::string(table[uint_val % 0x10]) + std::string(table[uint_val / 0x10]);
 		};
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y, block_left, block_top, block_right, block_bottom)) {
+		if (PtInRect(states->mouseState.x, states->mouseState.y, block_left, block_top, block_right, block_bottom)) {
 			std::string encode = "#" + To0x(r) + To0x(g) + To0x(b);
 			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-			GuiRenderer::instance()->drawString(states->mouse_state.x + 15, states->mouse_state.y + 15, GuiRenderer::DEPTH_NEAR, encode.c_str());
+			GuiRenderer::instance()->drawString(states->mouseState.x + 15, states->mouseState.y + 15, GuiRenderer::DEPTH_NEAR, encode.c_str());
 		}
 	}
 
 	void AyaGui::InputText(std::string &str, int width, const bool auto_select_all, const bool auto_clear_on_enter, const bool banned) {
-		int id(states->current_id++);
+		int id(states->currentId++);
 
 		auto calc_prefix = [&]() {
-			states->string_width_prefix_sum.clear();
-			states->string_width_prefix_sum.push_back(0);
+			states->stringWidthPrefixSum.clear();
+			states->stringWidthPrefixSum.push_back(0);
 
-			for (auto c : states->string_buffer) {
+			for (auto c : states->stringBuffer) {
 				SIZE text_extent;
 				GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &c, 1, &text_extent);
-				states->string_width_prefix_sum.push_back(text_extent.cx + states->string_width_prefix_sum.back());
+				states->stringWidthPrefixSum.push_back(text_extent.cx + states->stringWidthPrefixSum.back());
 			}
 		};
 
-		if (states->current_pos_x + width > states->widget_end_x)
-			width = states->widget_end_x - states->current_pos_x;
-		int left = states->current_pos_x;
-		int top = states->current_pos_y;
+		if (states->currentPosX + width > states->widgetEndX)
+			width = states->widgetEndX - states->currentPosX;
+		int left = states->currentPosX;
+		int top = states->currentPosY;
 		int right = left + width;
-		int bottom = top + input_text_default_height;
+		int bottom = top + c_inputTextDefaultHeight;
 
 		if (!banned) {
-			if (PtInRect(states->mouse_state.x, states->mouse_state.y, left, top, right, bottom)) {
-				if (states->mouse_state.action == MouseAction::LButtonDbClick || (states->mouse_state.action == MouseAction::LButtonDown && auto_select_all)) {
-					states->active_id = id;
-					if (states->editing_id != id) {
-						states->editing_id = id;
-						states->string_buffer = str;
+			if (PtInRect(states->mouseState.x, states->mouseState.y, left, top, right, bottom)) {
+				if (states->mouseState.action == MouseAction::LButtonDbClick || (states->mouseState.action == MouseAction::LButtonDown && auto_select_all)) {
+					states->activeId = id;
+					if (states->editingId != id) {
+						states->editingId = id;
+						states->stringBuffer = str;
 					}
 
 					calc_prefix();
 
-					states->cursor_pos = input_text_indent + (states->string_buffer.length() > 0 ? states->string_width_prefix_sum.back() : 0);
-					states->cursor_idx = states->string_buffer.length();
-					states->select_idx = 0;
+					states->cursorPos = c_inputTextIndent + (states->stringBuffer.length() > 0 ? states->stringWidthPrefixSum.back() : 0);
+					states->cursorIdx = states->stringBuffer.length();
+					states->selectIdx = 0;
 				}
-				else if (states->mouse_state.action == MouseAction::LButtonDown) {
-					states->active_id = id;
-					if (states->editing_id != id) {
-						states->editing_id = id;
-						states->string_buffer = str;
+				else if (states->mouseState.action == MouseAction::LButtonDown) {
+					states->activeId = id;
+					if (states->editingId != id) {
+						states->editingId = id;
+						states->stringBuffer = str;
 					}
 
 					calc_prefix();
 
-					int dist_x = states->mouse_state.x - (states->current_pos_x + 3);
-					int char_it = std::lower_bound(states->string_width_prefix_sum.begin(), states->string_width_prefix_sum.end(), dist_x) -
-						states->string_width_prefix_sum.begin();
+					int dist_x = states->mouseState.x - (states->currentPosX + 3);
+					int char_it = std::lower_bound(states->stringWidthPrefixSum.begin(), states->stringWidthPrefixSum.end(), dist_x) -
+						states->stringWidthPrefixSum.begin();
 					if (--char_it < 0) char_it = 0;
 
-					states->cursor_idx = char_it;
-					states->cursor_pos = input_text_indent + states->string_width_prefix_sum[char_it];
-					states->select_idx = states->cursor_idx;
+					states->cursorIdx = char_it;
+					states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[char_it];
+					states->selectIdx = states->cursorIdx;
 				}
 
-				states->hovered_id = id;
+				states->hoveredId = id;
 			}
-			else if (states->mouse_state.action == MouseAction::LButtonDown || states->mouse_state.action == MouseAction::LButtonDbClick) {
-				if (states->editing_id == id) {
-					states->editing_id = -1;
-					str = states->string_buffer;
+			else if (states->mouseState.action == MouseAction::LButtonDown || states->mouseState.action == MouseAction::LButtonDbClick) {
+				if (states->editingId == id) {
+					states->editingId = -1;
+					str = states->stringBuffer;
 				}
-				if (states->active_id == id)
-					states->active_id = -1;
+				if (states->activeId == id)
+					states->activeId = -1;
 			}
 
-			if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down && states->active_id == id) {
-				int dist_x = states->mouse_state.x - (states->current_pos_x + 3);
-				int char_it = std::lower_bound(states->string_width_prefix_sum.begin(), states->string_width_prefix_sum.end(), dist_x) -
-					states->string_width_prefix_sum.begin();
+			if (states->mouseState.action == MouseAction::Move && states->mouseState.l_down && states->activeId == id) {
+				int dist_x = states->mouseState.x - (states->currentPosX + 3);
+				int char_it = std::lower_bound(states->stringWidthPrefixSum.begin(), states->stringWidthPrefixSum.end(), dist_x) -
+					states->stringWidthPrefixSum.begin();
 				if (--char_it < 0) char_it = 0;
 
-				states->cursor_idx = char_it;
-				states->cursor_pos = input_text_indent + states->string_width_prefix_sum[char_it];
+				states->cursorIdx = char_it;
+				states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[char_it];
 			}
 
-			if (states->active_id == id && (states->key_state.funckey != FunctionKey::None || states->key_state.key != '\0')) {
-				switch (states->key_state.funckey) {
+			if (states->activeId == id && (states->keyState.funckey != FunctionKey::None || states->keyState.key != '\0')) {
+				switch (states->keyState.funckey) {
 				case FunctionKey::LeftArrow: {
-					auto ori_idx = states->cursor_idx--;
-					if (states->cursor_idx < 0) states->cursor_idx = 0;
-					states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
-					if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
+					auto ori_idx = states->cursorIdx--;
+					if (states->cursorIdx < 0) states->cursorIdx = 0;
+					states->cursorPos += states->stringWidthPrefixSum[states->cursorIdx] - states->stringWidthPrefixSum[ori_idx];
+					if (states->keyState.keymode != KeyMode::Shift) states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::RightArrow: {
-					auto ori_idx = states->cursor_idx++;
-					if (states->cursor_idx > (int)states->string_buffer.length()) states->cursor_idx = states->string_buffer.length();
-					states->cursor_pos += states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[ori_idx];
-					if (states->key_state.keymode != KeyMode::Shift) states->select_idx = states->cursor_idx;
+					auto ori_idx = states->cursorIdx++;
+					if (states->cursorIdx > (int)states->stringBuffer.length()) states->cursorIdx = states->stringBuffer.length();
+					states->cursorPos += states->stringWidthPrefixSum[states->cursorIdx] - states->stringWidthPrefixSum[ori_idx];
+					if (states->keyState.keymode != KeyMode::Shift) states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::UpArrow: {
-					states->select_idx = 0;
+					states->selectIdx = 0;
 					break;
 				}
 				case FunctionKey::DownArrow: {
-					states->select_idx = states->string_buffer.length();
+					states->selectIdx = states->stringBuffer.length();
 					break;
 				}
 				case FunctionKey::Enter: {
-					if (states->editing_id == id && states->active_id == id) {
-						str = states->string_buffer;
+					if (states->editingId == id && states->activeId == id) {
+						str = states->stringBuffer;
 						if (auto_clear_on_enter) {
-							states->string_buffer.clear();
+							states->stringBuffer.clear();
 
-							states->cursor_idx = states->select_idx = 0;
-							states->cursor_pos = input_text_indent;
+							states->cursorIdx = states->selectIdx = 0;
+							states->cursorPos = c_inputTextIndent;
 							calc_prefix();
 						}
 						else {
-							states->editing_id = -1;
-							states->active_id = -1;
+							states->editingId = -1;
+							states->activeId = -1;
 						}
 					}
-					states->select_idx = states->cursor_idx;
+					states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::BackSpace: {
-					if (states->cursor_idx != states->select_idx) {
-						auto min_idx = states->select_idx;
-						auto max_idx = states->cursor_idx;
+					if (states->cursorIdx != states->selectIdx) {
+						auto min_idx = states->selectIdx;
+						auto max_idx = states->cursorIdx;
 						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-						states->string_buffer.erase(min_idx, max_idx - min_idx);
-						states->cursor_idx = min_idx;
-						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+						states->stringBuffer.erase(min_idx, max_idx - min_idx);
+						states->cursorIdx = min_idx;
+						states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[min_idx];
 						calc_prefix();
 					}
-					else if (states->cursor_idx > 0) {
-						int shift = states->string_width_prefix_sum[states->cursor_idx] - states->string_width_prefix_sum[states->cursor_idx - 1];
-						states->string_buffer.erase(states->cursor_idx - 1, 1);
+					else if (states->cursorIdx > 0) {
+						int shift = states->stringWidthPrefixSum[states->cursorIdx] - states->stringWidthPrefixSum[states->cursorIdx - 1];
+						states->stringBuffer.erase(states->cursorIdx - 1, 1);
 
 						calc_prefix();
 
-						states->cursor_pos -= shift;
-						states->cursor_idx--;
+						states->cursorPos -= shift;
+						states->cursorIdx--;
 					}
-					states->select_idx = states->cursor_idx;
+					states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::Delete: {
-					if (states->cursor_idx != states->select_idx) {
-						auto min_idx = states->select_idx;
-						auto max_idx = states->cursor_idx;
+					if (states->cursorIdx != states->selectIdx) {
+						auto min_idx = states->selectIdx;
+						auto max_idx = states->cursorIdx;
 						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-						states->string_buffer.erase(min_idx, max_idx - min_idx);
-						states->cursor_idx = min_idx;
-						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+						states->stringBuffer.erase(min_idx, max_idx - min_idx);
+						states->cursorIdx = min_idx;
+						states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[min_idx];
 						calc_prefix();
 					}
-					else if (states->cursor_idx < (int)states->string_buffer.length()) {
-						int indent = states->string_width_prefix_sum[states->cursor_idx + 1] - states->string_width_prefix_sum[states->cursor_idx];
-						states->string_buffer.erase(states->cursor_idx, 1);
+					else if (states->cursorIdx < (int)states->stringBuffer.length()) {
+						int indent = states->stringWidthPrefixSum[states->cursorIdx + 1] - states->stringWidthPrefixSum[states->cursorIdx];
+						states->stringBuffer.erase(states->cursorIdx, 1);
 
 						calc_prefix();
 					}
-					states->select_idx = states->cursor_idx;
+					states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::Home: {
-					states->cursor_pos = input_text_indent;
-					states->cursor_idx = 0;
-					states->select_idx = states->cursor_idx;
+					states->cursorPos = c_inputTextIndent;
+					states->cursorIdx = 0;
+					states->selectIdx = states->cursorIdx;
 					break;
 				}
 				case FunctionKey::End: {
-					states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
-					states->cursor_idx = states->string_width_prefix_sum.size() - 1;
-					states->select_idx = states->cursor_idx;
+					states->cursorPos = states->stringWidthPrefixSum.back() + c_inputTextIndent;
+					states->cursorIdx = states->stringWidthPrefixSum.size() - 1;
+					states->selectIdx = states->cursorIdx;
 					break;
 				}
 				}
 
-				if (states->key_state.keymode == KeyMode::Ctrl) {
-					switch (states->key_state.key) {
+				if (states->keyState.keymode == KeyMode::Ctrl) {
+					switch (states->keyState.key) {
 					case 'A':
 					case 'a':
-						states->select_idx = 0;
-						states->cursor_idx = states->string_buffer.length();
-						states->cursor_pos = states->string_width_prefix_sum.back() + input_text_indent;
+						states->selectIdx = 0;
+						states->cursorIdx = states->stringBuffer.length();
+						states->cursorPos = states->stringWidthPrefixSum.back() + c_inputTextIndent;
 						break;
 
 					case 'C':
 					case 'c':
-						if (states->cursor_idx != states->select_idx) {
-							auto min_idx = states->select_idx;
-							auto max_idx = states->cursor_idx;
+						if (states->cursorIdx != states->selectIdx) {
+							auto min_idx = states->selectIdx;
+							auto max_idx = states->cursorIdx;
 							if (min_idx > max_idx) std::swap(min_idx, max_idx);
-							states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
+							states->clipboard = states->stringBuffer.substr(min_idx, max_idx - min_idx);
 						}
 						break;
 
 					case 'X':
 					case 'x':
-						if (states->cursor_idx != states->select_idx) {
-							auto min_idx = states->select_idx;
-							auto max_idx = states->cursor_idx;
+						if (states->cursorIdx != states->selectIdx) {
+							auto min_idx = states->selectIdx;
+							auto max_idx = states->cursorIdx;
 							if (min_idx > max_idx) std::swap(min_idx, max_idx);
-							states->clipboard = states->string_buffer.substr(min_idx, max_idx - min_idx);
+							states->clipboard = states->stringBuffer.substr(min_idx, max_idx - min_idx);
 
-							states->string_buffer.erase(min_idx, max_idx - min_idx);
-							states->cursor_idx = states->select_idx = min_idx;
-							states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+							states->stringBuffer.erase(min_idx, max_idx - min_idx);
+							states->cursorIdx = states->selectIdx = min_idx;
+							states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[min_idx];
 							calc_prefix();
 						}
 						break;
@@ -1576,147 +1576,147 @@ namespace Aya {
 					case 'V':
 					case 'v':
 						if (states->clipboard.length()) {
-							auto min_idx = states->select_idx;
-							auto max_idx = states->cursor_idx;
+							auto min_idx = states->selectIdx;
+							auto max_idx = states->cursorIdx;
 							if (min_idx > max_idx) std::swap(min_idx, max_idx);
 
 							SIZE text_extent;
 							GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), states->clipboard.c_str(), states->clipboard.length(), &text_extent);
-							if (states->string_width_prefix_sum.back() + text_extent.cx -
-								(states->string_width_prefix_sum[max_idx] - states->string_width_prefix_sum[min_idx]) >= width - input_text_indent)
+							if (states->stringWidthPrefixSum.back() + text_extent.cx -
+								(states->stringWidthPrefixSum[max_idx] - states->stringWidthPrefixSum[min_idx]) >= width - c_inputTextIndent)
 								break;
 
-							if (states->cursor_idx != states->select_idx) {
-								states->string_buffer.erase(min_idx, max_idx - min_idx);
-								states->string_buffer.insert(min_idx, states->clipboard);
-								states->cursor_idx = states->select_idx = min_idx + states->clipboard.length();
+							if (states->cursorIdx != states->selectIdx) {
+								states->stringBuffer.erase(min_idx, max_idx - min_idx);
+								states->stringBuffer.insert(min_idx, states->clipboard);
+								states->cursorIdx = states->selectIdx = min_idx + states->clipboard.length();
 							}
 							else {
-								states->string_buffer.insert(states->cursor_idx, states->clipboard);
-								states->cursor_idx = states->select_idx = states->cursor_idx + states->clipboard.length();
+								states->stringBuffer.insert(states->cursorIdx, states->clipboard);
+								states->cursorIdx = states->selectIdx = states->cursorIdx + states->clipboard.length();
 							}
 
 							calc_prefix();
-							states->cursor_pos = input_text_indent + states->string_width_prefix_sum[states->cursor_idx];
+							states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[states->cursorIdx];
 						}
 
 						break;
 					}
 				}
 
-				if (states->key_state.keymode == KeyMode::None && (states->key_state.key > 0x2F && states->key_state.key < 0x7F)) {
-					if (states->cursor_idx != states->select_idx) {
-						auto min_idx = states->select_idx;
-						auto max_idx = states->cursor_idx;
+				if (states->keyState.keymode == KeyMode::None && (states->keyState.key > 0x2F && states->keyState.key < 0x7F)) {
+					if (states->cursorIdx != states->selectIdx) {
+						auto min_idx = states->selectIdx;
+						auto max_idx = states->cursorIdx;
 						if (min_idx > max_idx) std::swap(min_idx, max_idx);
-						states->string_buffer.erase(min_idx, max_idx - min_idx);
-						states->cursor_idx = min_idx;
-						states->cursor_pos = input_text_indent + states->string_width_prefix_sum[min_idx];
+						states->stringBuffer.erase(min_idx, max_idx - min_idx);
+						states->cursorIdx = min_idx;
+						states->cursorPos = c_inputTextIndent + states->stringWidthPrefixSum[min_idx];
 						calc_prefix();
 					}
 
 					SIZE text_extent;
-					GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &states->key_state.key, 1, &text_extent);
+					GetTextExtentPoint32A(GuiRenderer::instance()->getHDC(), &states->keyState.key, 1, &text_extent);
 
-					if (states->string_width_prefix_sum.back() + text_extent.cx < width - input_text_indent) {
-						states->string_buffer.insert(states->cursor_idx, { states->key_state.key });
+					if (states->stringWidthPrefixSum.back() + text_extent.cx < width - c_inputTextIndent) {
+						states->stringBuffer.insert(states->cursorIdx, { states->keyState.key });
 
 						calc_prefix();
 
-						states->cursor_pos += text_extent.cx;
-						states->cursor_idx++;
-						states->select_idx = states->cursor_idx;
+						states->cursorPos += text_extent.cx;
+						states->cursorIdx++;
+						states->selectIdx = states->cursorIdx;
 					}
 				}
 			}
 		}
 		else {
-			if (states->active_id == id && states->editing_id == id) {
-				str = states->string_buffer;
+			if (states->activeId == id && states->editingId == id) {
+				str = states->stringBuffer;
 
-				states->cursor_idx = 0;
-				states->select_idx = 0;
-				states->cursor_pos = input_text_indent;
+				states->cursorIdx = 0;
+				states->selectIdx = 0;
+				states->cursorPos = c_inputTextIndent;
 			}
-			if (states->active_id == id)
-				states->active_id = -1;
-			if (states->editing_id == id)
-				states->editing_id = -1;
+			if (states->activeId == id)
+				states->activeId = -1;
+			if (states->editingId == id)
+				states->editingId = -1;
 		}
 
 		Color4f color = 
 			banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
-			states->hovered_id == id && states->active_id == -1 || states->active_id == id ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
+			states->hoveredId == id && states->activeId == -1 || states->activeId == id ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, false, color);
 
-		if (states->hovered_id == id && states->active_id == -1 || states->active_id == id) {
+		if (states->hoveredId == id && states->activeId == -1 || states->activeId == id) {
 			glPushAttrib(GL_COLOR_BUFFER_BIT);
 			glBlendFunc(GL_DST_COLOR, GL_CONSTANT_ALPHA);
 			GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, true, Color4f(0.6f, 0.6f, 0.6f, 1.0f));
 			glPopAttrib();
 		}
 
-		std::string &rendered_str = states->active_id != id ? str : states->string_buffer;
+		std::string &rendered_str = states->activeId != id ? str : states->stringBuffer;
 
-		if (states->select_idx == states->cursor_idx || states->active_id != id) {
+		if (states->selectIdx == states->cursorIdx || states->activeId != id) {
 			if (!banned)
 				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 			else
 				glColor4f(1.0f, 1.0f, 1.0f, 0.65f);
-			GuiRenderer::instance()->drawString(states->current_pos_x + 3, states->current_pos_y + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str());
+			GuiRenderer::instance()->drawString(states->currentPosX + 3, states->currentPosY + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str());
 		}
 		else {
-			auto min_idx = states->select_idx;
-			auto max_idx = states->cursor_idx;
+			auto min_idx = states->selectIdx;
+			auto max_idx = states->cursorIdx;
 			if (min_idx > max_idx) std::swap(min_idx, max_idx);
 
-			GuiRenderer::instance()->drawRect(states->current_pos_x + input_text_indent + states->string_width_prefix_sum[min_idx],
-				states->current_pos_y + 3,
-				states->current_pos_x + input_text_indent + states->string_width_prefix_sum[max_idx],
-				states->current_pos_y + 16,
+			GuiRenderer::instance()->drawRect(states->currentPosX + c_inputTextIndent + states->stringWidthPrefixSum[min_idx],
+				states->currentPosY + 3,
+				states->currentPosX + c_inputTextIndent + states->stringWidthPrefixSum[max_idx],
+				states->currentPosY + 16,
 				GuiRenderer::DEPTH_MID,
 				true,
 				color);
 
 			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-			GuiRenderer::instance()->drawString(states->current_pos_x + 3, states->current_pos_y + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str(), min_idx);
-			GuiRenderer::instance()->drawString(states->current_pos_x + 3 + states->string_width_prefix_sum[max_idx],
-				states->current_pos_y + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str() + max_idx);
+			GuiRenderer::instance()->drawString(states->currentPosX + 3, states->currentPosY + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str(), min_idx);
+			GuiRenderer::instance()->drawString(states->currentPosX + 3 + states->stringWidthPrefixSum[max_idx],
+				states->currentPosY + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str() + max_idx);
 
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 			glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
-			GuiRenderer::instance()->drawString(states->current_pos_x + 3 + states->string_width_prefix_sum[min_idx],
-				states->current_pos_y + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str() + min_idx, max_idx - min_idx);
+			GuiRenderer::instance()->drawString(states->currentPosX + 3 + states->stringWidthPrefixSum[min_idx],
+				states->currentPosY + 5, GuiRenderer::DEPTH_MID, rendered_str.c_str() + min_idx, max_idx - min_idx);
 		}
 
-		if (states->active_id == id)
-			GuiRenderer::instance()->drawLine(states->current_pos_x + states->cursor_pos, states->current_pos_y + 3,
-				states->current_pos_x + states->cursor_pos, states->current_pos_y + 16, GuiRenderer::DEPTH_MID);
+		if (states->activeId == id)
+			GuiRenderer::instance()->drawLine(states->currentPosX + states->cursorPos, states->currentPosY + 3,
+				states->currentPosX + states->cursorPos, states->currentPosY + 16, GuiRenderer::DEPTH_MID);
 
-		if (states->current_growth_strategy == GrowthStrategy::Vertical) {
-			states->current_pos_y += input_text_default_height + default_margin_bottom;
-			states->current_pos_x = padding_left;
+		if (states->currentGrowthStrategy == GrowthStrategy::Vertical) {
+			states->currentPosY += c_inputTextDefaultHeight + c_defaultMarginBottom;
+			states->currentPosX = c_paddingLeft;
 		}
 		else {
-			states->current_pos_x += width + default_margin_right;
+			states->currentPosX += width + c_defaultMarginRight;
 		}
 	}
 
 	bool AyaGui::InputDigit(const char *label, int &digit, const bool banned) {
 		if (label) Text(label);
 
-		auto x0 = states->current_pos_x, y0 = states->current_pos_y;
+		auto x0 = states->currentPosX, y0 = states->currentPosY;
 		auto prev_digit = digit;
 		
-		states->current_pos_x = x0 + 62;
+		states->currentPosX = x0 + 62;
 		if (Button("-", 20, 18, banned)) --digit;
 
-		states->current_pos_x = x0 + 86;
-		states->current_pos_y = y0;
+		states->currentPosX = x0 + 86;
+		states->currentPosY = y0;
 		if (Button("+", 20, 18, banned)) ++digit;
 
-		states->current_pos_x = x0;
-		states->current_pos_y = y0;
+		states->currentPosX = x0;
+		states->currentPosY = y0;
 		char buf[32];
 		_itoa_s(digit, buf, 10);
 
@@ -1728,15 +1728,15 @@ namespace Aya {
 	}
 
 	void AyaGui::Scroller(int limit, int actual, float &lin) {
-		int id(states->current_id++);
+		int id(states->currentId++);
 
 		if (actual <= limit)
 			return;
 
-		states->scroller_active = true;
-		states->current_pos_x = padding_left;
+		states->scrollerActive = true;
+		states->currentPosX = c_paddingLeft;
 
-		const int bar_base = states->current_pos_y;
+		const int bar_base = states->currentPosY;
 		const int diff = 2;
 		const int inner_base = bar_base + diff;
 
@@ -1749,9 +1749,9 @@ namespace Aya {
 
 		int scroller_pos = scroller_base + int((scroller_end - scroller_base) * lin);
 
-		int bar_left = states->dialog_width - scroller_margin;
+		int bar_left = states->dialogWidth - c_scrollerMargin;
 		int bar_top = bar_base;
-		int bar_right = bar_left + scroller_width;
+		int bar_right = bar_left + c_scrollerWidth;
 		int bar_bottom = bar_top + limit;
 
 		auto SetScroller = [&](int pos) {
@@ -1762,90 +1762,90 @@ namespace Aya {
 			lin = lin < 0.0f ? 0.0f : (lin > 1.0f ? 1.0f : lin);
 		};
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+		if (PtInRect(states->mouseState.x, states->mouseState.y,
 			bar_left, bar_top, bar_right, bar_bottom)) {
-			if (states->mouse_state.action == MouseAction::LButtonDown) {
-				states->active_id = id;
+			if (states->mouseState.action == MouseAction::LButtonDown) {
+				states->activeId = id;
 
-				int offset = states->mouse_state.y - scroller_pos;
+				int offset = states->mouseState.y - scroller_pos;
 				if (offset < 0) offset = -offset;
 
 				if (offset > scroller_len / 2)
-					states->scroller_botton_down_offset = 0;
+					states->scrollerBottonDownOffset = 0;
 				else
-					states->scroller_botton_down_offset = states->mouse_state.y - scroller_pos;
+					states->scrollerBottonDownOffset = states->mouseState.y - scroller_pos;
 			}
 
-			if (states->mouse_state.action == MouseAction::LButtonUp) {
-				SetScroller(states->mouse_state.y - states->scroller_botton_down_offset);
+			if (states->mouseState.action == MouseAction::LButtonUp) {
+				SetScroller(states->mouseState.y - states->scrollerBottonDownOffset);
 
-				if (states->active_id == id)
-					states->active_id = -1;
+				if (states->activeId == id)
+					states->activeId = -1;
 			}
 
-			states->hovered_id = id;
+			states->hoveredId = id;
 		}
 
-		if (states->mouse_state.action == MouseAction::Move && states->mouse_state.l_down) {
-			if (states->active_id == id) {
-				SetScroller(states->mouse_state.y - states->scroller_botton_down_offset);
+		if (states->mouseState.action == MouseAction::Move && states->mouseState.l_down) {
+			if (states->activeId == id) {
+				SetScroller(states->mouseState.y - states->scrollerBottonDownOffset);
 			}
 		}
 
-		if (states->mouse_state.action == MouseAction::LButtonUp)
-			if (states->active_id == id)
-				states->active_id = -1;
+		if (states->mouseState.action == MouseAction::LButtonUp)
+			if (states->activeId == id)
+				states->activeId = -1;
 
 		int area_left = 0;
 		int area_top = bar_base;
-		int area_right = states->dialog_width;
+		int area_right = states->dialogWidth;
 		int area_bottom = bar_base + limit;
 
-		if (PtInRect(states->mouse_state.x, states->mouse_state.y,
+		if (PtInRect(states->mouseState.x, states->mouseState.y,
 			area_left, area_top, area_right, area_bottom)) {
-			switch (states->key_state.funckey) {
+			switch (states->keyState.funckey) {
 			case FunctionKey::Home:
-				if (states->active_id == id || states->active_id == -1)
+				if (states->activeId == id || states->activeId == -1)
 				SetScroller(scroller_base);
 				break;
 			case FunctionKey::End:
-				if (states->active_id == id || states->active_id == -1)
+				if (states->activeId == id || states->activeId == -1)
 				SetScroller(scroller_end);
 				break;
 			case FunctionKey::PageUp:
-				states->active_id = id;
-				SetScroller(scroller_pos - page_control_height);
+				states->activeId = id;
+				SetScroller(scroller_pos - c_pageControlHeight);
 				break;
 			case FunctionKey::PageDown:
-				states->active_id = id;
-				SetScroller(scroller_pos + page_control_height);
+				states->activeId = id;
+				SetScroller(scroller_pos + c_pageControlHeight);
 				break;
 			case FunctionKey::UpArrow:
-				states->active_id = id;
-				SetScroller(scroller_pos - arrow_control_height);
+				states->activeId = id;
+				SetScroller(scroller_pos - c_arrowControlHeight);
 				break;
 			case FunctionKey::DownArrow:
-				states->active_id = id;
-				SetScroller(scroller_pos + arrow_control_height);
+				states->activeId = id;
+				SetScroller(scroller_pos + c_arrowControlHeight);
 				break;
 			}
 		}
 
-		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
+		Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 
-		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin + 1,
+		GuiRenderer::instance()->drawRoundedRect(states->dialogWidth - c_scrollerMargin + 1,
 			bar_base,
-			states->dialog_width - scroller_width + 1,
+			states->dialogWidth - c_scrollerWidth + 1,
 			bar_base + limit,
 			GuiRenderer::DEPTH_MID,
 			diff * 2,
 			false,
 			color);
 
-		GuiRenderer::instance()->drawRoundedRect(states->dialog_width - scroller_margin + diff,
+		GuiRenderer::instance()->drawRoundedRect(states->dialogWidth - c_scrollerMargin + diff,
 			scroller_start,
-			states->dialog_width - scroller_width - 1,
+			states->dialogWidth - c_scrollerWidth - 1,
 			scroller_start + scroller_len,
 			GuiRenderer::DEPTH_MID,
 			diff,
@@ -1855,71 +1855,71 @@ namespace Aya {
 
 	void AyaGui::BeginScroller(int area_height, int &content_height, float &scroller) {
 		glEnable(GL_SCISSOR_TEST);
-		glScissor(states->dialog_pos_x,
-			states->screen_height - (states->dialog_pos_y + states->current_pos_y + area_height),
-			states->dialog_width,
+		glScissor(states->dialogPosX,
+			states->screenHeight - (states->dialogPosY + states->currentPosY + area_height),
+			states->dialogWidth,
 			area_height);
 
 		Scroller(area_height, content_height, scroller);
 
 		int offset = int(scroller * (content_height - area_height));
 		if (offset < 0) offset = 0;
-		states->scroller_init_y = states->current_pos_y - offset;
-		states->scroller_origin_y = states->current_pos_y;
-		states->current_pos_y = states->scroller_init_y;
+		states->scrollerInitY = states->currentPosY - offset;
+		states->scrollerOriginY = states->currentPosY;
+		states->currentPosY = states->scrollerInitY;
 	}
 
 	void AyaGui::EndScroller(int area_height, int &content_height, float &scroller) {
-		content_height = states->current_pos_y - states->scroller_init_y;
-		states->current_pos_y = states->scroller_origin_y + area_height + default_margin_bottom;
+		content_height = states->currentPosY - states->scrollerInitY;
+		states->currentPosY = states->scrollerOriginY + area_height + c_defaultMarginBottom;
 
-		if (states->scroller_active) {
-			states->current_pos_x = padding_left;
-			states->scroller_active = false;
+		if (states->scrollerActive) {
+			states->currentPosX = c_paddingLeft;
+			states->scrollerActive = false;
 		}
 
 		glDisable(GL_SCISSOR_TEST);
 	}
 
 	bool AyaGui::CollapsingHeader(const char *label, bool &show) {
-		int id(states->current_id++);
+		int id(states->currentId++);
 
-		int head_left = states->current_pos_x;
-		int head_top = states->current_pos_y;
-		int head_right = states->widget_end_x;
-		int head_bottom = states->current_pos_y + (show ? header_text_height : header_height);
+		int head_left = states->currentPosX;
+		int head_top = states->currentPosY;
+		int head_right = states->widgetEndX;
+		int head_bottom = states->currentPosY + (show ? c_headerTextHeight : c_headerHeight);
 
-		bool in_rect = PtInRect(states->mouse_state.x, states->mouse_state.y, head_left, head_top, head_right, head_bottom);
+		bool in_rect = PtInRect(states->mouseState.x, states->mouseState.y, head_left, head_top, head_right, head_bottom);
 
 		if (in_rect) {
-			if (states->mouse_state.action == MouseAction::LButtonDown)
-				states->active_id = id;
+			if (states->mouseState.action == MouseAction::LButtonDown)
+				states->activeId = id;
 
-			states->hovered_id = id;
+			states->hoveredId = id;
 		}
 
-		if (states->mouse_state.action == MouseAction::LButtonUp) {
-			if (states->active_id == id) {
-				states->active_id = -1;
+		if (states->mouseState.action == MouseAction::LButtonUp) {
+			if (states->activeId == id) {
+				states->activeId = -1;
 				if (in_rect)
 					show = !show;
 			}
 		}
 
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		GuiRenderer::instance()->drawString(states->current_pos_x, states->current_pos_y, GuiRenderer::DEPTH_MID, label);
+		GuiRenderer::instance()->drawString(states->currentPosX, states->currentPosY, GuiRenderer::DEPTH_MID, label);
 
-		Color4f color = states->hovered_id == id && states->active_id == -1 || states->active_id == id ?
+		Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 1.0f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		glColor4fv((float*)&color);
-		GuiRenderer::instance()->drawLine(states->current_pos_x, states->current_pos_y + header_text_height + 1, 
-			states->widget_end_x, states->current_pos_y + header_text_height + 1, GuiRenderer::DEPTH_MID);
+		GuiRenderer::instance()->drawLine(states->currentPosX, states->currentPosY + c_headerTextHeight + 1, 
+			states->widgetEndX, states->currentPosY + c_headerTextHeight + 1, GuiRenderer::DEPTH_MID);
 
 		if (!show)
-			GuiRenderer::instance()->drawString(states->widget_end_x - 15, states->current_pos_y + header_text_height + 6, GuiRenderer::DEPTH_MID, "...");
+			GuiRenderer::instance()->drawString(states->widgetEndX - 15, states->currentPosY + c_headerTextHeight + 6, GuiRenderer::DEPTH_MID, "...");
 
-		states->current_growth_strategy = GrowthStrategy::Vertical;
-		states->current_pos_y += (!show ? header_height : header_text_height) + default_margin_right;
+		states->currentGrowthStrategy = GrowthStrategy::Vertical;
+		states->currentPosY += (!show ? c_headerHeight : c_headerTextHeight) + c_defaultMarginRight;
 
 		return show;
 	}
