@@ -245,7 +245,7 @@ namespace Aya {
 			glGetProgramInfoLog(handle, length, &length, status_buffer);
 			glGetProgramiv(handle, GL_LINK_STATUS, &status);
 			if (status != GL_TRUE)
-				throw std::exception(status_buffer);
+				throw std::runtime_error(status_buffer);
 
 			delete[] status_buffer;
 		};
