@@ -736,8 +736,8 @@ namespace Aya {
 			GuiRenderer::DEPTH_FAR,
 			12.0f,
 			true,
-			Color4f(0.1f, 0.1f, 0.1f, 1.f),
-			Color4f(0.0f, 0.0f, 0.0f, 0.2f));
+			{ 0.1f, 0.1f, 0.1f, 1.f },
+			{ 0.0f, 0.0f, 0.0f, 0.2f });
 
 		if (layout == LayoutStrategy::Floating) {
 			GuiRenderer::instance()->drawHalfRoundedRect(0,
@@ -747,8 +747,8 @@ namespace Aya {
 				GuiRenderer::DEPTH_FAR,
 				12.0f,
 				true,
-				Color4f(0.1f, 0.1f, 0.1f, 1.0f),
-				Color4f(0.0f, 0.0f, 0.0f, 0.03f));
+				{ 0.1f, 0.1f, 0.1f, 1.0f },
+				{ 0.0f, 0.0f, 0.0f, 0.03f });
 		}
 
 		if (title) {
@@ -1032,22 +1032,22 @@ namespace Aya {
 		float btn_radius = 5.0f;
 		if (banned) {
 			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
-				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.3f));
+				GuiRenderer::DEPTH_MID, btn_radius, true, { 1.0f, 1.0f, 1.0f, 0.3f });
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 		}
 		else if (states->hoveredId == id && states->activeId == id) {
 			GuiRenderer::instance()->drawRoundedRect(left + 1, top + 1, right - 1, bottom - 1,
-				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.65f));
+				GuiRenderer::DEPTH_MID, btn_radius, true, { 1.0f, 1.0f, 1.0f, 0.65f });
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 		}
 		else if (states->hoveredId == id && states->activeId == -1 || states->activeId == id) {
 			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
-				GuiRenderer::DEPTH_MID, btn_radius, true, Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+				GuiRenderer::DEPTH_MID, btn_radius, true, { 1.0f, 1.0f, 1.0f, 0.5f });
 			glColor4f(0.15f, 0.15f, 0.15f, 0.15f);
 		}
 		else {
 			GuiRenderer::instance()->drawRoundedRect(left, top, right, bottom,
-				GuiRenderer::DEPTH_MID, btn_radius, false, Color4f(1.0f, 1.0f, 1.0f, 0.5f));
+				GuiRenderer::DEPTH_MID, btn_radius, false, { 1.0f, 1.0f, 1.0f, 0.5f });
 			glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 		}
 
@@ -1155,7 +1155,7 @@ namespace Aya {
 				}
 			}
 
-			GuiRenderer::instance()->drawRect(drop_left, drop_top + 1, drop_right, drop_bottom, GuiRenderer::DEPTH_NEAR, true, Color4f(0.25f, 0.25f, 0.25f, 1.0f));
+			GuiRenderer::instance()->drawRect(drop_left, drop_top + 1, drop_right, drop_bottom, GuiRenderer::DEPTH_NEAR, true, { 0.25f, 0.25f, 0.25f, 1.0f });
 
 			int hovered_idx = (states->mouseState.y - drop_top) / c_comboBoxItemHeight;
 			if (hovered_idx < 0)
@@ -1172,7 +1172,7 @@ namespace Aya {
 						drop_top + 1 + (hovered_idx + 1) * c_comboBoxItemHeight,
 						GuiRenderer::DEPTH_NEAR,
 						true,
-						Color4f(0.4f, 0.4f, 0.4f, 0.5f));
+						{ 0.4f, 0.4f, 0.4f, 0.5f });
 
 					glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 					glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1347,9 +1347,9 @@ namespace Aya {
 		int block_bottom = block_top + size;
 
 		GuiRenderer::instance()->drawRect(block_left - 1, block_top - 1, block_right + 1, block_bottom + 1,
-			GuiRenderer::DEPTH_MID, false, Color4f(1.0f, 1.0f, 1.0f, 1.0f));
+			GuiRenderer::DEPTH_MID, false, { 1.0f, 1.0f, 1.0f, 1.0f });
 		GuiRenderer::instance()->drawRect(block_left, block_top, block_right, block_bottom,
-			GuiRenderer::DEPTH_MID, true, Color4f(r, g, b, 1.0f));
+			GuiRenderer::DEPTH_MID, true, { r, g, b, 1.0f });
 
 		auto To0x = [](float val) {
 			static const char* table[0x10] =
@@ -1652,7 +1652,7 @@ namespace Aya {
 		if (states->hoveredId == id && states->activeId == -1 || states->activeId == id) {
 			glPushAttrib(GL_COLOR_BUFFER_BIT);
 			glBlendFunc(GL_DST_COLOR, GL_CONSTANT_ALPHA);
-			GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, true, Color4f(0.6f, 0.6f, 0.6f, 1.0f));
+			GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, true, { 0.6f, 0.6f, 0.6f, 1.0f });
 			glPopAttrib();
 		}
 
