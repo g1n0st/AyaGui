@@ -223,7 +223,7 @@ namespace Aya {
 			GLint compile_status;
 			glGetShaderiv(handle, GL_COMPILE_STATUS, &compile_status);
 			if (compile_status != GL_TRUE)
-				throw std::exception("GLSL compiled error");
+				throw std::runtime_error("GLSL compiled error");
 
 			return handle;
 		};
