@@ -887,7 +887,7 @@ namespace Aya {
 		va_start(args, str);
 
 		char buff[1024];
-		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+		const int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
 
 		va_end(args);
 
@@ -917,7 +917,7 @@ namespace Aya {
 		va_start(args, str);
 
 		char buff[1024];
-		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+		const int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
 
 		va_end(args);
 
@@ -947,7 +947,7 @@ namespace Aya {
 		va_start(args, str);
 
 		char buff[4096];
-		int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
+		const int size = vsnprintf(buff, sizeof(buff) - 1, str, args);
 
 		va_end(args);
 
@@ -998,13 +998,12 @@ namespace Aya {
 
 	bool AyaGui::Button(const char *label, const int width, const int height, const bool banned) {
 		bool triggered = false;
-		int id(states->currentId++);
+		const int id(states->currentId++);
 
-		int left = states->currentPosX;
-		int right = states->currentPosX + width;
-		right = right > states->widgetEndX ? states->widgetEndX : right;
-		int top = states->currentPosY;
-		int bottom = states->currentPosY + height;
+		const int left = states->currentPosX;
+		const int right = states->currentPosX + width > states->widgetEndX ? states->widgetEndX : states->currentPosX + width;
+		const int top = states->currentPosY;
+		const int bottom = states->currentPosY + height;
 
 		if (!banned) {
 			bool in_rect = PtInRect(states->mouseState.x, states->mouseState.y, left, top, right, bottom);
@@ -1090,13 +1089,13 @@ namespace Aya {
 		else
 			states->currentPosX -= c_defaultMarginRight / 2;
 
-		int id(states->currentId++);
+		const int id(states->currentId++);
 		if (width + states->currentPosX > states->widgetEndX)
 			width = states->widgetEndX - states->currentPosX;
-		int frame_left = states->currentPosX;
-		int frame_top = states->currentPosY;
-		int frame_right = states->currentPosX + width;
-		int frmae_bottom = states->currentPosY + c_comboBoxHeight;
+		const int frame_left = states->currentPosX;
+		const int frame_top = states->currentPosY;
+		const int frame_right = states->currentPosX + width;
+		const int frmae_bottom = states->currentPosY + c_comboBoxHeight;
 
 		static bool list_down_current_frame;
 		list_down_current_frame = false;
@@ -1139,10 +1138,10 @@ namespace Aya {
 			GuiRenderer::instance()->drawString(frame_left + 5, frame_top + 5, GuiRenderer::DEPTH_MID, "...");
 
 		if (states->activeId == id) {
-			int drop_left = states->currentPosX;
-			int drop_top = states->currentPosY + c_comboBoxHeight;
-			int drop_right = drop_left + width - c_comboBoxHeight;
-			int drop_bottom = drop_top + 1 + int(items.size()) * c_comboBoxItemHeight;
+			const int drop_left = states->currentPosX;
+			const int drop_top = states->currentPosY + c_comboBoxHeight;
+			const int drop_right = drop_left + width - c_comboBoxHeight;
+			const int drop_bottom = drop_top + 1 + int(items.size()) * c_comboBoxItemHeight;
 
 			if (states->mouseState.action == MouseAction::LButtonDown) {
 				if (PtInRect(states->mouseState.x, states->mouseState.y, drop_left, drop_top, drop_right, drop_bottom))
@@ -1197,12 +1196,12 @@ namespace Aya {
 	bool AyaGui::CheckBox(const char *label, bool &checked, const bool banned) {
 		bool triggered = false;
 
-		int id(states->currentId++);
+		const int id(states->currentId++);
 
-		int box_left = states->currentPosX;
-		int box_top = states->currentPosY;
-		int box_right = box_left + c_checkBoxSize;
-		int box_bottom = box_top + c_checkBoxSize;
+		const int box_left = states->currentPosX;
+		const int box_top = states->currentPosY;
+		const int box_right = box_left + c_checkBoxSize;
+		const int box_bottom = box_top + c_checkBoxSize;
 
 		if (!banned) {
 			if (PtInRect(states->mouseState.x, states->mouseState.y, box_left, box_top, box_right, box_bottom)) {
@@ -1229,7 +1228,7 @@ namespace Aya {
 				states->activeId = -1;
 		}
 
-		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
+		const Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
 			states->hoveredId == id && states->activeId == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(box_left,
 			box_top,
@@ -1239,7 +1238,7 @@ namespace Aya {
 			false,
 			color1);
 
-		Color4f color2 = checked ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ? 
+		const Color4f color2 = checked ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(1.0f, 1.0f, 1.0f, 0.1f);
 		GuiRenderer::instance()->drawRect(box_left + 2,
 			box_top + 2,
@@ -1271,12 +1270,12 @@ namespace Aya {
 	bool AyaGui::RadioButton(const char *label, int active, int &current, const bool banned) {
 		bool triggered = false;
 
-		int id(states->currentId++);
+		const int id(states->currentId++);
 
-		int box_left = states->currentPosX;
-		int box_top = states->currentPosY;
-		int box_right = box_left + c_radioButtonCircleDiameter;
-		int box_bottom = box_top + c_radioButtonCircleDiameter;
+		const int box_left = states->currentPosX;
+		const int box_top = states->currentPosY;
+		const int box_right = box_left + c_radioButtonCircleDiameter;
+		const int box_bottom = box_top + c_radioButtonCircleDiameter;
 
 		if (!banned) {
 			if (PtInRect(states->mouseState.x, states->mouseState.y, box_left, box_top, box_right, box_bottom)) {
@@ -1303,7 +1302,7 @@ namespace Aya {
 				states->activeId = -1;
 		}
 
-		Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
+		const Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
 			states->hoveredId == id && states->activeId == -1 ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
@@ -1312,7 +1311,7 @@ namespace Aya {
 			false,
 			color1);
 
-		Color4f color2 = (current == active) ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ? 
+		const Color4f color2 = (current == active) ? color1 : states->hoveredId == id && states->activeId == -1 && !banned ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.15f) : Color4f(0.0f, 0.0f, 0.0f, 0.0f);
 		GuiRenderer::instance()->drawCircle((box_left + box_right) / 2,
 			(box_top + box_bottom) / 2,
@@ -1341,10 +1340,10 @@ namespace Aya {
 	}
 
 	void AyaGui::ColorBlock(float r, float g, float b, int size) {
-		int block_left = states->currentPosX;
-		int block_top = states->currentPosY;
-		int block_right = block_left + size;
-		int block_bottom = block_top + size;
+		const int block_left = states->currentPosX;
+		const int block_top = states->currentPosY;
+		const int block_right = block_left + size;
+		const int block_bottom = block_top + size;
 
 		GuiRenderer::instance()->drawRect(block_left - 1, block_top - 1, block_right + 1, block_bottom + 1,
 			GuiRenderer::DEPTH_MID, false, { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -1355,7 +1354,7 @@ namespace Aya {
 			static const char* table[0x10] =
 			{ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" };
 
-			uint32_t uint_val = uint32_t(val * 0xFF);
+			const uint32_t uint_val = uint32_t(val * 0xFF);
 			return std::string(table[uint_val % 0x10]) + std::string(table[uint_val / 0x10]);
 		};
 
@@ -1367,7 +1366,7 @@ namespace Aya {
 	}
 
 	void AyaGui::InputText(std::string &str, int width, const bool auto_select_all, const bool auto_clear_on_enter, const bool banned) {
-		int id(states->currentId++);
+		const int id(states->currentId++);
 
 		auto calc_prefix = [&]() {
 			states->stringWidthPrefixSum.clear();
@@ -1382,10 +1381,10 @@ namespace Aya {
 
 		if (states->currentPosX + width > states->widgetEndX)
 			width = states->widgetEndX - states->currentPosX;
-		int left = states->currentPosX;
-		int top = states->currentPosY;
-		int right = left + width;
-		int bottom = top + c_inputTextDefaultHeight;
+		const int left = states->currentPosX;
+		const int top = states->currentPosY;
+		const int right = left + width;
+		const int bottom = top + c_inputTextDefaultHeight;
 
 		if (!banned) {
 			if (PtInRect(states->mouseState.x, states->mouseState.y, left, top, right, bottom)) {
@@ -1411,7 +1410,7 @@ namespace Aya {
 
 					calc_prefix();
 
-					int dist_x = states->mouseState.x - (states->currentPosX + 3);
+					const int dist_x = states->mouseState.x - (states->currentPosX + 3);
 					int char_it = std::lower_bound(states->stringWidthPrefixSum.begin(), states->stringWidthPrefixSum.end(), dist_x) -
 						states->stringWidthPrefixSum.begin();
 					if (--char_it < 0) char_it = 0;
@@ -1644,7 +1643,7 @@ namespace Aya {
 				states->editingId = -1;
 		}
 
-		Color4f color = 
+		const Color4f color =
 			banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) :
 			states->hoveredId == id && states->activeId == -1 || states->activeId == id ? Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		GuiRenderer::instance()->drawRect(left, top, right, bottom, GuiRenderer::DEPTH_MID, false, color);
@@ -1749,10 +1748,10 @@ namespace Aya {
 
 		int scroller_pos = scroller_base + int((scroller_end - scroller_base) * lin);
 
-		int bar_left = states->dialogWidth - c_scrollerMargin;
-		int bar_top = bar_base;
-		int bar_right = bar_left + c_scrollerWidth;
-		int bar_bottom = bar_top + limit;
+		const int bar_left = states->dialogWidth - c_scrollerMargin;
+		const int bar_top = bar_base;
+		const int bar_right = bar_left + c_scrollerWidth;
+		const int bar_bottom = bar_top + limit;
 
 		auto SetScroller = [&](int pos) {
 			scroller_pos = pos;
@@ -1796,10 +1795,10 @@ namespace Aya {
 			if (states->activeId == id)
 				states->activeId = -1;
 
-		int area_left = 0;
-		int area_top = bar_base;
-		int area_right = states->dialogWidth;
-		int area_bottom = bar_base + limit;
+		const int area_left = 0;
+		const int area_top = bar_base;
+		const int area_right = states->dialogWidth;
+		const int area_bottom = bar_base + limit;
 
 		if (PtInRect(states->mouseState.x, states->mouseState.y,
 			area_left, area_top, area_right, area_bottom)) {
@@ -1831,7 +1830,7 @@ namespace Aya {
 			}
 		}
 
-		Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
+		const Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 
 		GuiRenderer::instance()->drawRoundedRect(states->dialogWidth - c_scrollerMargin + 1,
@@ -1882,14 +1881,14 @@ namespace Aya {
 	}
 
 	bool AyaGui::CollapsingHeader(const char *label, bool &show) {
-		int id(states->currentId++);
+		const int id(states->currentId++);
 
-		int head_left = states->currentPosX;
-		int head_top = states->currentPosY;
-		int head_right = states->widgetEndX;
-		int head_bottom = states->currentPosY + (show ? c_headerTextHeight : c_headerHeight);
+		const int head_left = states->currentPosX;
+		const int head_top = states->currentPosY;
+		const int head_right = states->widgetEndX;
+		const int head_bottom = states->currentPosY + (show ? c_headerTextHeight : c_headerHeight);
 
-		bool in_rect = PtInRect(states->mouseState.x, states->mouseState.y, head_left, head_top, head_right, head_bottom);
+		const bool in_rect = PtInRect(states->mouseState.x, states->mouseState.y, head_left, head_top, head_right, head_bottom);
 
 		if (in_rect) {
 			if (states->mouseState.action == MouseAction::LButtonDown)
@@ -1909,7 +1908,7 @@ namespace Aya {
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 		GuiRenderer::instance()->drawString(states->currentPosX, states->currentPosY, GuiRenderer::DEPTH_MID, label);
 
-		Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
+		const Color4f color = states->hoveredId == id && states->activeId == -1 || states->activeId == id ?
 			Color4f(1.0f, 1.0f, 1.0f, 1.0f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
 		glColor4fv((float*)&color);
 		GuiRenderer::instance()->drawLine(states->currentPosX, states->currentPosY + c_headerTextHeight + 1, 

@@ -355,7 +355,7 @@ namespace Aya {
 
 		template<typename T>
 		static bool Slider(const char *label, T &val, T min, T max, int width = c_sliderDefaultWidth, const bool banned = false) {
-			int id(states->currentId++);
+			const int id(states->currentId++);
 			bool modified = false;
 
 			if (label) Text(label);
@@ -379,13 +379,13 @@ namespace Aya {
 				return val;
 			};
 
-			float lin = fix01(float(val), float(min), float(max));
+			const float lin = fix01(float(val), float(min), float(max));
 			int button_x = int(slider_base + (slider_end - slider_base) * lin);
 
-			int bar_left = states->currentPosX;
-			int bar_top = states->currentPosY;
-			int bar_right = bar_left + width;
-			int bar_bottom = bar_top + c_sliderDefaultHeight;
+			const int bar_left = states->currentPosX;
+			const int bar_top = states->currentPosY;
+			const int bar_right = bar_left + width;
+			const int bar_bottom = bar_top + c_sliderDefaultHeight;
 
 			if (!banned) {
 				if (PtInRect(states->mouseState.x, states->mouseState.y,
@@ -430,9 +430,9 @@ namespace Aya {
 				if (states->activeId == id)
 					states->activeId = -1;
 
-			Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
+			const Color4f color1 = banned ? Color4f(1.0f, 1.0f, 1.0f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
 				Color4f(1.0f, 1.0f, 1.0f, 0.65f) : Color4f(1.0f, 1.0f, 1.0f, 0.5f);
-			Color4f color2 = banned ? Color4f(0.15f, 0.15f, 0.15f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
+			const Color4f color2 = banned ? Color4f(0.15f, 0.15f, 0.15f, 0.3f) : states->hoveredId == id && states->activeId == -1 || states->hoveredId == id ?
 				Color4f(0.3f, 0.3f, 0.3f, 0.65f) : Color4f(0.15f, 0.15f, 0.15f, 0.5f);
 
 			GuiRenderer::instance()->drawRect(bar_left - 1, bar_top - 1, bar_right + 1, bar_bottom + 1, 
